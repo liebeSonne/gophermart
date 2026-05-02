@@ -1,0 +1,139 @@
+sequenceDiagram
+    actor User
+    participant Gophermart
+    participant Accrual
+
+
+    Note over User,Gophermart: Регистрация пользователя
+    User->>Gophermart: POST /api/user/register (login, password)
+    activate Gophermart
+        alt корректные данные
+            Gophermart-->>Gophermart: Проверка существования пользователя по login
+            alt есть login
+                Gophermart->>User: 409
+            else
+                Gophermart-->>Gophermart: Сохранение пользователя
+                Gophermart->>User: 200 (cookie: auth_token)
+            end
+        else
+            Gophermart->>User: 400
+        end
+    deactivate Gophermart
+
+
+    Note over User,Gophermart: Аутентификация пользователя
+    User->>Gophermart: POST /api/user/login (login, password)
+    activate Gophermart
+        alt корректные данные
+            Gophermart-->>Gophermart: Проверка существования пользователя по login
+            alt есть пользователь
+                Gophermart-->>Gophermart: Проверка пароля
+                alt корректный пароль
+                    Gophermart->>User: 200 (cookie: auth_token)
+                else
+                    Gophermart->>User: 401
+                end
+            else
+                Gophermart->>User: 401
+            end
+        else
+            Gophermart->>User: 400
+        end
+    deactivate Gophermart
+
+
+    Note over User,Gophermart: Загрузка номера заказа
+    User->>Gophermart: POST /api/user/orders (orderId)
+    activate Gophermart
+        alt пользователь авторизован
+            alt корректные параметры запроса
+                Gophermart-->>Gophermart: поиск заказа
+                alt номер заказа уже загружен пользователем
+                    Gophermart->>User: 200
+                else номер заказа уже загружен другим пользователем
+                    Gophermart->>User: 409
+                else
+                    Gophermart-->>Gophermart: сохранение номера заказа
+                    loop асинхронные попытки начислить баллы по заказу
+                        Gophermart--)+Accrual: GET /api/orders/{number}
+                        Accrual-->>-Gophermart: результат
+                    end
+                    Gophermart->>User: 202
+                end
+            else неверный формат номера запроса
+                Gophermart->>User: 422
+            else
+                Gophermart->>User: 400
+            end
+        else
+            Gophermart->>User: 401
+        end
+    deactivate Gophermart
+
+
+    Note over User,Gophermart: Получение списка загруженных номеров заказов
+    User->>Gophermart: GET /api/user/orders
+    activate Gophermart
+        alt пользователь авторизован
+            Gophermart-->>Gophermart: Поиск заказов пользователя
+            alt есть заказы
+                Gophermart->>User: 200
+            else
+                Gophermart->>User: 204
+            end
+        else
+            Gophermart->>User: 401
+        end
+    deactivate Gophermart
+
+
+    Note over User,Gophermart: Получение текущего баланса пользователя
+    User->>Gophermart: GET /api/user/balance
+    activate Gophermart
+    alt пользователь авторизован
+        Gophermart-->>Gophermart: Выборка данных баланса пользователя
+        Gophermart->>User: 200
+    else
+        Gophermart->>User: 401
+    end
+    deactivate Gophermart
+
+
+    Note over User,Gophermart: Запрос на списание средств
+    User->>Gophermart: POST /api/user/balance/withdraw
+    activate Gophermart
+    alt пользователь авторизован
+        alt корректные параметры запроса
+            Gophermart-->>Gophermart: Выборка данных баланса пользователя
+            alt на балансе достаточно баллов
+                Gophermart-->>Gophermart: Сохранение списания, пересчет баланса
+                Gophermart->>User: 200
+            else
+                Gophermart->>User: 402
+            end
+        else неверный формат номера запроса
+            Gophermart->>User: 422
+        else
+            Gophermart->>User: 400
+        end
+    else
+        Gophermart->>User: 401
+    end
+    deactivate Gophermart
+
+
+    Note over User,Gophermart: Получение информации о выводе средств
+    User->>Gophermart: GET /api/user/withdrawals
+    activate Gophermart
+    alt пользователь авторизован
+        Gophermart-->>Gophermart: Выборка данных списаний
+        alt есть списания
+            Gophermart->>User: 200
+        else
+            Gophermart->>User: 204
+        end
+    else
+        Gophermart->>User: 401
+    end
+    deactivate Gophermart
+
