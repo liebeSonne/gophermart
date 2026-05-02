@@ -1,0 +1,68 @@
+openapi: 3.1.0
+info:
+  title: Accrual system API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/orders/{number}:
+    get:
+      summary: Получение информации о расчёте начислений баллов лояльности
+      operationId: GetOrders
+      parameters:
+        - in: path
+          name: number
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetOrdersResponse'
+        '204':
+          description: заказ не зарегистрирован в системе расчета
+        '429':
+          description: превышено количество запросов к сервису
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          description: внутренняя ошибка сервера
+components:
+  responses:
+    TooManyRequests:
+      headers:
+        Retry-After:
+          description: количество секунд, которое нужно подождать перед повторным запросом
+          schema:
+            type: integer
+            example: "60"
+        content:
+          text/plain:
+            schema:
+              type: string
+              example: "No more than 100 requests per minute allowed"
+  schemas:
+    GetOrdersResponse:
+      type: objet
+      required:
+        - order
+        - status
+      properties:
+        order:
+          type: string
+          description: номер заказа
+        status:
+          type: string
+          enum:
+            - REGISTERED
+            - INVALID
+            - PROCESSING
+            - PROCESSED
+          description: статус расчёта начисления
+        accrual:
+          type: number
+          format: float
+          example: "10.05"
+          description: рассчитанные баллы к начислению, при отсутствии начисления (status не равен PROCESSED)— поле отсутствует в ответе
