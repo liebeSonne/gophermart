@@ -1,0 +1,35 @@
+erDiagram
+    user {
+        uuid id PK
+        string login UK
+        string passhash
+        datetime created_at
+    }
+
+    user ||--o{ user_order: "регистрирует"
+    user_order {
+        uuid id PK
+        uuid user_id FK
+        string order_id UK
+        tinyint status "0 = NEW | 1 = PROCESSING | 2 = INVALID | 3 = PROCESSED"
+        numeric_15_2 accrual "DEFAULT NULL"
+        datetime created_at
+        datetime updated_at
+    }
+
+    user ||--|| user_balance: "имеет"
+    user_balance {
+        uuid user_id PK, FK
+        numeric_15_2 balance
+        numeric_15_2 withdrawn_sum
+        datetime updated_at
+    }
+
+    user ||--o{ user_balance_withdrawn: "списывает"
+    user_balance_withdrawn {
+        uuid id PK
+        uuid user_id FK
+        string order_id
+        numeric_15_2 amount
+        datetime created_at
+    }
