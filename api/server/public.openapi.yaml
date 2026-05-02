@@ -1,0 +1,278 @@
+openapi: 3.2.0
+info:
+  title: Gophermart public API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+security:
+  - cookieAuth: []
+tags:
+  - name: auth
+  - name: command
+  - name: query
+paths:
+  /api/user/register:
+    post:
+      tags: [ auth ]
+      summary: Регистрация пользователя
+      operationId: RegisterUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: пользователь успешно зарегистрирован и аутентифицирован
+          headers:
+            Set-Cookie:
+              $ref: '#components/headers/SetAuthCookieHeader'
+        '400':
+          description: неверный формат запроса
+        '409':
+          description: логин уже занят
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/login:
+    post:
+      tags: [ auth ]
+      summary: Аутентификация пользователя
+      operationId: LoginUser
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/UserCredentials'
+      responses:
+        '200':
+          description: пользователь успешно аутентифицирован
+          headers:
+            Set-Cookie:
+              $ref: '#components/headers/SetAuthCookieHeader'
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: неверная пара логин/пароль
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/orders:
+    post:
+      tags: [ command ]
+      summary: Загрузка номена заказа
+      operationId: UploadUserOrders
+      requestBody:
+        required: true
+        content:
+          text/plain:
+            schema:
+              $ref: '#components/schemas/OrderId'
+      responses:
+        '200':
+          description: номер заказа уже был загружен этим пользователем
+        '202':
+          description: новый номер заказа принят в обработку
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: пользователь не аутентифицирован
+        '409':
+          description: номер заказа уже был загружен другим пользователем
+        '422':
+          description: неверный формат номера заказа
+        '500':
+          description: внутренняя ошибка сервера
+    get:
+      tags: [ query ]
+      summary: Получение списка загруженных номеров заказов
+      operationId: GetUserOrders
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#components/schemas/GetUserOrdersResponse'
+        '204':
+          description: нет данных для ответа
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/balance:
+    get:
+      tags: [ query ]
+      summary: Получение текущего баланса пользователя
+      operationId: GetUserBalance
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#components/schemas/GetUserBalanceResponse'
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/balance/withdraw:
+    post:
+      tags: [ command ]
+      summary: Запрос на списание средств
+      operationId: WithdrawUserBalance
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#components/schemas/WithdrawUserBalanceRequest'
+      responses:
+        '200':
+          description: успешная обработка запроса
+        '400':
+          description: неверный формат запроса
+        '401':
+          description: пользователь не авторизован
+        '402':
+          description: на счету недостаточно средств
+        '422':
+          description: неверный номер заказа
+        '500':
+          description: внутренняя ошибка сервера
+  /api/user/withdrawals:
+    get:
+      tags: [ query ]
+      summary: Получение информации о выводе средств
+      operationId: GetUserWithdrawals
+      responses:
+        '200':
+          description: успешная обработка запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#components/schemas/GetUserWithdrawalsResponse'
+        '204':
+          description: нет ни одного списания
+        '401':
+          description: пользователь не авторизован
+        '500':
+          description: внутренняя ошибка сервера
+
+components:
+  securitySchemas:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: access_token
+  headers:
+    SetAuthCookieHeader:
+      description: устанавливает куку авторизации
+      schema: string
+      example: "access_token=abc123; Path=/; HttpOnly; Secure; SameSite=Strict"
+  schemas:
+    UserCredentials:
+      type: object
+      required:
+        - login
+        - password
+      properties:
+        login:
+          type: string
+          minLength: 1
+          maxLength: 255
+          description: уникальное имя пользователя
+        password:
+          type: string
+          format: password
+          minLength: 1
+    OrderId:
+      type: string
+      minLength: 1
+      description: номер заказа, последовательность цифр произвольной длины
+      example: "12345678903"
+    GetUserOrdersResponse:
+      type: array
+      items:
+        $ref: '#components/schemas/UserOrderData'
+    UserOrderData:
+      type: object
+      required:
+        - number
+        - status
+        - uploaded_at
+      properties:
+        number:
+          $ref: '#components/schemas/OrderId'
+        status:
+          type: string
+          enum:
+            - NEW
+            - PROCESSING
+            - INVALID
+            - PROCESSED
+          description: статус обработки расчётов
+        accrual:
+          type: number
+          format: float
+          minimum: 0
+          example: "100.50"
+          description: начисленные баллы, при отсутствии начисления (status не равен PROCESSED) - поле отсутствует в ответе
+        uploaded_at:
+          type: datetime
+          description: дата и время загрузки заказа, в формате RFC3339
+          example: "2020-12-10T15:15:45+03:00"
+    GetUserBalanceResponse:
+      type: object
+      required:
+        - current
+        - withdrawn
+      properties:
+        current:
+          type: number
+          format: float
+          example: "500.5"
+          description: текущая сумма баллов лояльности
+        withdrawn:
+          type: number
+          format: float
+          minimum: 0
+          example: "42.0"
+          description: сумма использованных за весь период регистрации баллов
+    WithdrawUserBalanceRequest:
+      type: object
+      required:
+        - order
+        - sum
+      properties:
+        order:
+          $ref: '#components/schemas/OrderId'
+        sum:
+          type: number
+          format: float
+          minimum: 0
+          example: "751.0"
+    GetUserWithdrawalsResponse:
+      type: array
+      items:
+        $ref: '#components/schemas/WithdrawalData'
+    WithdrawalData:
+      type: object
+      required:
+        - order
+        - sum
+        - processed_at
+      properties:
+        order:
+          $ref: '#components/schemas/OrderId'
+        sum:
+          type: number
+          format: float
+          minimum: 0
+          example: "500.0"
+        processed_at:
+          type: datetime
+          description: дата и время списания, в формате RFC3339
+          example: "2020-12-10T15:15:45+03:00"
