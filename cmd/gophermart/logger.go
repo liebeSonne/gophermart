@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"os"
 
 	"github.com/sirupsen/logrus"
@@ -19,10 +19,10 @@ var configToLoggerLogLevelMap = map[config.LogLevel]logrus.Level{
 	config.LogLevelPanic: logrus.PanicLevel,
 }
 
-func initLogger(cfg config.Config) (*logrus.Logger, error) {
+func initLogger(cfg config.Config) *logrus.Logger {
 	loggerLevel, ok := configToLoggerLogLevelMap[cfg.LogLevel]
 	if !ok {
-		return nil, fmt.Errorf("unknown log level: %s", cfg.LogLevel)
+		log.Fatalf("unknown log level: %s", cfg.LogLevel)
 	}
 
 	logger := logrus.New()
@@ -31,5 +31,5 @@ func initLogger(cfg config.Config) (*logrus.Logger, error) {
 	logger.SetOutput(os.Stdout)
 	logger.SetLevel(loggerLevel)
 
-	return logger, nil
+	return logger
 }

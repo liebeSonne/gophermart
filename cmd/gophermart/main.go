@@ -1,29 +1,32 @@
 package main
 
 import (
-	"log"
+	"context"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/sirupsen/logrus"
-
-	"github.com/liebeSonne/gophermart/internal/config"
 )
 
 const appID = "gophermart"
 
 func main() {
-	cfg, err := config.LoadConfig(appID)
-	if err != nil {
-		log.Fatalf("error loading config: %s", err.Error())
-	}
+	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-	logger, err := initLogger(cfg)
-	if err != nil {
-		log.Fatalf("error initializing logger: %s", err.Error())
-	}
+	cfg := initConfig()
+	logger := initLogger(cfg)
 
 	logger.WithFields(logrus.Fields{
 		"RunAddress":           cfg.RunAddress,
 		"AccrualSystemAddress": cfg.AccrualSystemAddress,
 		"LogLevel":             cfg.LogLevel,
 	}).Infoln("Config")
+
+	err := runApp(ctx, cfg, logger)
+	if err != nil {
+		logger.Fatalf("error running app: %s", err.Error())
+	}
 }
