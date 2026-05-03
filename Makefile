@@ -1,7 +1,7 @@
 export CGO_ENABLED=0
 
 .PHONY: all
-all: lint build generate tests
+all: lint build generate generate-api tests
 
 .PHONY: lint
 lint:
@@ -14,6 +14,14 @@ build:
 .PHONY: generate
 generate:
 	go generate ./...
+
+.PHONY: generate-api
+generate-api:
+	go tool oapi-codegen -config ./api/server/config.yaml ./api/server/public.openapi.yaml
+
+.PHONY: clean-api
+clean-api:
+	rm -f api/server/public.openapi.gen.go
 
 .PHONY: tests
 tests:
