@@ -30,6 +30,9 @@ linters:
       enabled-tags:
         - experimental
         - opinionated
+    govet:
+      enable:
+        - shadow
   exclusions:
     generated: lax
     presets:

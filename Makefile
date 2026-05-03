@@ -1,3 +1,5 @@
+export CGO_ENABLED=0
+
 .PHONY: all
 all: lint build generate tests
 
