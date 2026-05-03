@@ -1,0 +1,7 @@
+dir: "{{.InterfaceDir}}"
+filename: "mock_{{ .InterfaceName | snakecase }}.go"
+pkgname: '{{.SrcPackageName}}'
+structname: '{{.Mock}}{{.InterfaceName}}'
+template: testify
+packages:
+  ~
