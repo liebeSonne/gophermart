@@ -1,8 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
+
+	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/config"
 )
@@ -15,5 +16,14 @@ func main() {
 		log.Fatalf("error loading config: %s", err.Error())
 	}
 
-	fmt.Printf("Config: %+v\n", cfg)
+	logger, err := initLogger(cfg)
+	if err != nil {
+		log.Fatalf("error initializing logger: %s", err.Error())
+	}
+
+	logger.WithFields(logrus.Fields{
+		"RunAddress":           cfg.RunAddress,
+		"AccrualSystemAddress": cfg.AccrualSystemAddress,
+		"LogLevel":             cfg.LogLevel,
+	}).Infoln("Config")
 }

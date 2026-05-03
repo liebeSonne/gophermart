@@ -16,6 +16,10 @@ func TestLoadConfig(t *testing.T) {
 	address4 := "127.0.0.4:4444"
 	uri1 := "postgres://127.0.0.1:1111/database"
 	uri2 := "postgres://127.0.0.1:2222/database"
+	logLevel1 := LogLevelError
+	logLevel2 := LogLevelWarn
+	logFormat1 := LogFormatJSON
+	logFormat2 := LogFormatText
 
 	type when struct {
 		args []string
@@ -38,6 +42,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           DefaultRunAddress,
 					DatabaseURI:          DefaultDatabaseURI,
 					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
 				},
 				nil,
 			},
@@ -50,6 +56,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddressEnv:           address1,
 					DatabaseURIEnv:          uri1,
 					AccrualSystemAddressEnv: address2,
+					LogLevelEnv:             string(logLevel1),
+					LogFormatEnv:            string(logFormat1),
 				},
 			},
 			want{
@@ -57,6 +65,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           address1,
 					DatabaseURI:          uri1,
 					AccrualSystemAddress: address2,
+					LogLevel:             logLevel1,
+					LogFormat:            logFormat1,
 				},
 				nil,
 			},
@@ -74,6 +84,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           address1,
 					DatabaseURI:          DefaultDatabaseURI,
 					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
 				},
 				nil,
 			},
@@ -91,6 +103,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           DefaultRunAddress,
 					DatabaseURI:          uri1,
 					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
 				},
 				nil,
 			},
@@ -108,6 +122,46 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           DefaultRunAddress,
 					DatabaseURI:          DefaultDatabaseURI,
 					AccrualSystemAddress: address2,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
+				},
+				nil,
+			},
+		},
+		{
+			"from env log level",
+			when{
+				[]string{},
+				map[string]string{
+					LogLevelEnv: string(logLevel1),
+				},
+			},
+			want{
+				Config{
+					RunAddress:           DefaultRunAddress,
+					DatabaseURI:          DefaultDatabaseURI,
+					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             logLevel1,
+					LogFormat:            DefaultLogFormat,
+				},
+				nil,
+			},
+		},
+		{
+			"from env log format",
+			when{
+				[]string{},
+				map[string]string{
+					LogFormatEnv: string(logFormat1),
+				},
+			},
+			want{
+				Config{
+					RunAddress:           DefaultRunAddress,
+					DatabaseURI:          DefaultDatabaseURI,
+					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            logFormat1,
 				},
 				nil,
 			},
@@ -119,6 +173,8 @@ func TestLoadConfig(t *testing.T) {
 					"-a", address1,
 					"-d", uri1,
 					"-r", address2,
+					"-ll", string(logLevel1),
+					"-lf", string(logFormat1),
 				},
 				map[string]string{},
 			},
@@ -127,6 +183,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           address1,
 					DatabaseURI:          uri1,
 					AccrualSystemAddress: address2,
+					LogLevel:             logLevel1,
+					LogFormat:            logFormat1,
 				},
 				nil,
 			},
@@ -144,6 +202,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           address1,
 					DatabaseURI:          DefaultDatabaseURI,
 					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
 				},
 				nil,
 			},
@@ -161,6 +221,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           DefaultRunAddress,
 					DatabaseURI:          uri1,
 					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
 				},
 				nil,
 			},
@@ -178,6 +240,46 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           DefaultRunAddress,
 					DatabaseURI:          DefaultDatabaseURI,
 					AccrualSystemAddress: address2,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            DefaultLogFormat,
+				},
+				nil,
+			},
+		},
+		{
+			"from flag -ll",
+			when{
+				[]string{
+					"-ll", string(logLevel1),
+				},
+				map[string]string{},
+			},
+			want{
+				Config{
+					RunAddress:           DefaultRunAddress,
+					DatabaseURI:          DefaultDatabaseURI,
+					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             logLevel1,
+					LogFormat:            DefaultLogFormat,
+				},
+				nil,
+			},
+		},
+		{
+			"from flag -lf",
+			when{
+				[]string{
+					"-lf", string(logFormat1),
+				},
+				map[string]string{},
+			},
+			want{
+				Config{
+					RunAddress:           DefaultRunAddress,
+					DatabaseURI:          DefaultDatabaseURI,
+					AccrualSystemAddress: DefaultAccrualSystemAddress,
+					LogLevel:             DefaultLogLever,
+					LogFormat:            logFormat1,
 				},
 				nil,
 			},
@@ -189,11 +291,15 @@ func TestLoadConfig(t *testing.T) {
 					"-a", address1,
 					"-d", uri1,
 					"-r", address2,
+					"-ll", string(logLevel1),
+					"-lf", string(logFormat1),
 				},
 				map[string]string{
 					RunAddressEnv:           address3,
 					DatabaseURIEnv:          uri2,
 					AccrualSystemAddressEnv: address4,
+					LogLevelEnv:             string(logLevel2),
+					LogFormatEnv:            string(logFormat2),
 				},
 			},
 			want{
@@ -201,6 +307,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           address1,
 					DatabaseURI:          uri1,
 					AccrualSystemAddress: address2,
+					LogLevel:             logLevel1,
+					LogFormat:            logFormat1,
 				},
 				nil,
 			},
@@ -215,6 +323,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddressEnv:           address3,
 					DatabaseURIEnv:          uri2,
 					AccrualSystemAddressEnv: address4,
+					LogLevelEnv:             string(logLevel1),
+					LogFormatEnv:            string(logFormat1),
 				},
 			},
 			want{
@@ -222,6 +332,8 @@ func TestLoadConfig(t *testing.T) {
 					RunAddress:           address1,
 					DatabaseURI:          uri2,
 					AccrualSystemAddress: address4,
+					LogLevel:             logLevel1,
+					LogFormat:            logFormat1,
 				},
 				nil,
 			},
