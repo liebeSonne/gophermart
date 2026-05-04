@@ -1,0 +1,9 @@
+CREATE TABLE user
+(
+    id UUID NOT NULL PRIMARY KEY,
+    login      VARCHAR(255) NOT NULL,
+    passhash   VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX user_login_idx ON user (login);
