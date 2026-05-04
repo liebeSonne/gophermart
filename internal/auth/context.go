@@ -1,18 +1,16 @@
-package context
+package auth
 
 import (
 	"context"
 
 	"github.com/google/uuid"
-
-	"github.com/liebeSonne/gophermart/internal/auth"
 )
 
 type tokenContextKey struct{}
 
 var tokenKey = tokenContextKey{}
 
-func CreateTokenContext(ctx context.Context, token auth.Token) context.Context {
+func CreateTokenContext(ctx context.Context, token Token) context.Context {
 	return context.WithValue(ctx, tokenKey, token)
 }
 
@@ -30,10 +28,10 @@ func GetUserIDFromContext(ctx context.Context) (uuid.UUID, bool) {
 	return userID, true
 }
 
-func getTokenFromContext(ctx context.Context) (auth.Token, bool) {
-	token, ok := ctx.Value(tokenKey).(auth.Token)
+func getTokenFromContext(ctx context.Context) (Token, bool) {
+	token, ok := ctx.Value(tokenKey).(Token)
 	if !ok {
-		return auth.Token{}, false
+		return Token{}, false
 	}
 
 	return token, true

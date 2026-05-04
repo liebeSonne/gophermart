@@ -22,6 +22,7 @@ const (
 	DefaultAuthTokenExpires     = time.Hour * 24
 )
 
+// nolint: gosec
 const (
 	RunAddressEnv           = "RUN_ADDRESS"
 	DatabaseURIEnv          = "DATABASE_URI"
@@ -40,10 +41,10 @@ type Config struct {
 	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS" env-default:":8081" env-description:"accrual system address"`
 	LogLevel             LogLevel      `env:"LOG_LEVEL" env-default:"info" env-description:"log level: trace, debug, info, warn, error, fatal, panic"`
 	LogFormat            LogFormat     `env:"LOG_FORMAT" env-default:"text" env-description:"log format: text, json"`
-	PasswordSecretKey    string        `env:"PASSWORD_SECRET_KEY" default:"secret-123"`
-	AuthCookieTokenKey   string        `env:"AUTH_COOKIE_TOKEN_KEY" default:"access_token"`
-	AuthSecretKey        string        `env:"AUTH_SECRET_KEY" default:"secret-key-123"`
-	AuthTokenExpires     time.Duration `env:"AUTH_TOKEN_EXPIRE" default:"24h"`
+	PasswordSecretKey    string        `env:"PASSWORD_SECRET_KEY" env-default:"secret-123" env-description:"secret key for password hash"`
+	AuthCookieTokenKey   string        `env:"AUTH_COOKIE_TOKEN_KEY" env-default:"access_token" env-description:"auth token key name in cookies"`
+	AuthSecretKey        string        `env:"AUTH_SECRET_KEY" env-default:"secret-key-123" env-description:"secret key for auth token"`
+	AuthTokenExpires     time.Duration `env:"AUTH_TOKEN_EXPIRE" env-default:"24h" env-description:"auth token expires"`
 }
 
 func LoadConfig(appID string) (Config, error) {

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// nolint: gosec
 func TestLoadConfig(t *testing.T) {
 	appID := "app"
 	address1 := "127.0.0.1:1111"
@@ -82,8 +83,8 @@ func TestLoadConfig(t *testing.T) {
 					LogLevel:             logLevel1,
 					LogFormat:            logFormat1,
 					PasswordSecretKey:    passwordSecretKey1,
-					AuthCookieTokenKey:   authSecretKey1,
-					AuthSecretKey:        authCookieTokenKey1,
+					AuthCookieTokenKey:   authCookieTokenKey1,
+					AuthSecretKey:        authSecretKey1,
 					AuthTokenExpires:     authTokenExpiresDuration1,
 				},
 				nil,
@@ -232,7 +233,7 @@ func TestLoadConfig(t *testing.T) {
 			when{
 				[]string{},
 				map[string]string{
-					PasswordSecretKeyEnv: authCookieTokenKey1,
+					AuthCookieTokenKeyEnv: authCookieTokenKey1,
 				},
 			},
 			want{
@@ -251,7 +252,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
-			"from env auth cookie token key",
+			"from env auth secret key",
 			when{
 				[]string{},
 				map[string]string{
@@ -274,7 +275,7 @@ func TestLoadConfig(t *testing.T) {
 			},
 		},
 		{
-			"from env auth cookie token key",
+			"from env auth token expires",
 			when{
 				[]string{},
 				map[string]string{

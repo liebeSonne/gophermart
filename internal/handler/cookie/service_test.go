@@ -37,7 +37,7 @@ func TestCookieService_SetAuthToken(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			w := httptest.NewRecorder()
-			r := httptest.NewRequest("GET", "/", nil)
+			r := httptest.NewRequest("GET", "/", http.NoBody)
 
 			cookieService := NewService(tokenKey)
 
@@ -111,7 +111,7 @@ func TestCookieService_GetAuthToken(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			r := httptest.NewRequest("GET", "/", nil)
+			r := httptest.NewRequest("GET", "/", http.NoBody)
 			for _, cookie := range tc.when.cookies {
 				r.AddCookie(&cookie)
 			}

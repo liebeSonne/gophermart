@@ -9,14 +9,28 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/config"
+	iocloser "github.com/liebeSonne/gophermart/internal/io/closer"
 )
 
 func runApp(
 	ctx context.Context,
 	cfg config.Config,
+	closer *iocloser.MultiCloser,
 	logger *logrus.Logger,
 ) error {
-	router, err := initRouter()
+	connection, err := newConnectionContainer(ctx, cfg, closer, logger)
+	if err != nil {
+		logger.WithError(err).Error("error creating connection container")
+		return err
+	}
+
+	dependency, err := newDependencyContainer(cfg, connection)
+	if err != nil {
+		logger.WithError(err).Error("error creating dependency container")
+		return err
+	}
+
+	router, err := initRouter(dependency, logger)
 	if err != nil {
 		return err
 	}
