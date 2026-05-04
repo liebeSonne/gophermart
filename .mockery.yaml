@@ -1,7 +1,13 @@
 dir: "{{.InterfaceDir}}"
-filename: "mock_{{ .InterfaceName | snakecase }}.go"
+filename: "mock_{{ .InterfaceName | snakecase }}.gen.go"
 pkgname: '{{.SrcPackageName}}'
 structname: '{{.Mock}}{{.InterfaceName}}'
 template: testify
 packages:
-  ~
+  github.com/liebeSonne/gophermart/internal/repository:
+    interfaces:
+      UserRepository: { }
+  github.com/liebeSonne/gophermart/internal/service:
+    interfaces:
+      UserService: { }
+      PasswordService: { }
