@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/ilyakaznacheev/cleanenv"
 )
@@ -15,6 +16,10 @@ const (
 	DefaultAccrualSystemAddress = ":8081"
 	DefaultLogLever             = LogLevelInfo
 	DefaultLogFormat            = LogFormatText
+	DefaultPasswordSecretKey    = "secret-123"
+	DefaultAuthCookieTokenKey   = "access_token"
+	DefaultAuthSecretKey        = "secret-key-123"
+	DefaultAuthTokenExpires     = time.Hour * 24
 )
 
 const (
@@ -23,14 +28,22 @@ const (
 	AccrualSystemAddressEnv = "ACCRUAL_SYSTEM_ADDRESS"
 	LogLevelEnv             = "LOG_LEVEL"
 	LogFormatEnv            = "LOG_FORMAT"
+	PasswordSecretKeyEnv    = "PASSWORD_SECRET_KEY"
+	AuthCookieTokenKeyEnv   = "AUTH_COOKIE_TOKEN_KEY"
+	AuthSecretKeyEnv        = "AUTH_SECRET_KEY"
+	AuthTokenExpiresEnv     = "AUTH_TOKEN_EXPIRE"
 )
 
 type Config struct {
-	RunAddress           string    `env:"RUN_ADDRESS" env-default:":8080" env-description:"run address: host and port"`
-	DatabaseURI          string    `env:"DATABASE_URI" env-default:"" env-description:"database URI"`
-	AccrualSystemAddress string    `env:"ACCRUAL_SYSTEM_ADDRESS" env-default:":8081" env-description:"accrual system address"`
-	LogLevel             LogLevel  `env:"LOG_LEVEL" env-default:"info" env-description:"log level: trace, debug, info, warn, error, fatal, panic"`
-	LogFormat            LogFormat `env:"LOG_FORMAT" env-default:"text" env-description:"log format: text, json"`
+	RunAddress           string        `env:"RUN_ADDRESS" env-default:":8080" env-description:"run address: host and port"`
+	DatabaseURI          string        `env:"DATABASE_URI" env-default:"" env-description:"database URI"`
+	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS" env-default:":8081" env-description:"accrual system address"`
+	LogLevel             LogLevel      `env:"LOG_LEVEL" env-default:"info" env-description:"log level: trace, debug, info, warn, error, fatal, panic"`
+	LogFormat            LogFormat     `env:"LOG_FORMAT" env-default:"text" env-description:"log format: text, json"`
+	PasswordSecretKey    string        `env:"PASSWORD_SECRET_KEY" default:"secret-123"`
+	AuthCookieTokenKey   string        `env:"AUTH_COOKIE_TOKEN_KEY" default:"access_token"`
+	AuthSecretKey        string        `env:"AUTH_SECRET_KEY" default:"secret-key-123"`
+	AuthTokenExpires     time.Duration `env:"AUTH_TOKEN_EXPIRE" default:"24h"`
 }
 
 func LoadConfig(appID string) (Config, error) {

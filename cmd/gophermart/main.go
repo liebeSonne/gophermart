@@ -23,6 +23,8 @@ func main() {
 		"RunAddress":           cfg.RunAddress,
 		"AccrualSystemAddress": cfg.AccrualSystemAddress,
 		"LogLevel":             cfg.LogLevel,
+		"AuthCookieTokenKey":   cfg.AuthCookieTokenKey,
+		"AuthTokenExpires":     cfg.AuthTokenExpires,
 	}).Infoln("Config")
 
 	err := runApp(ctx, cfg, logger)
