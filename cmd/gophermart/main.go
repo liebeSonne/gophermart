@@ -38,7 +38,12 @@ func main() {
 		"AuthTokenExpires":     cfg.AuthTokenExpires,
 	}).Infoln("Config")
 
-	err := runApp(ctx, cfg, &closer, logger)
+	err := runMigrator(cfg)
+	if err != nil {
+		logger.WithError(err).Fatal("Failed to run migrator")
+	}
+
+	err = runApp(ctx, cfg, &closer, logger)
 	if err != nil {
 		logger.Fatalf("error running app: %s", err.Error())
 	}
