@@ -10,9 +10,10 @@ import (
 )
 
 type dependencyContainer struct {
-	UserService   service.UserService
-	TokenService  auth.TokenService
-	CookieService cookie.Service
+	UserService      service.UserService
+	UserOrderService service.UserOrderService
+	TokenService     auth.TokenService
+	CookieService    cookie.Service
 }
 
 func newDependencyContainer(
@@ -23,12 +24,14 @@ func newDependencyContainer(
 	uowFactory := uow.NewUnitOfWorkFactory(connection.DBClient.Pool())
 	userProvider := repository.NewUserRepository(connection.DBClient.Pool())
 	userService := service.NewUserService(uowFactory, passwordService, userProvider)
+	userOrderService := service.NewUserOrderService(uowFactory)
 	tokenService := auth.NewTokenService(cfg.AuthSecretKey, cfg.AuthTokenExpires)
 	cookieService := cookie.NewService(cfg.AuthCookieTokenKey)
 
 	return &dependencyContainer{
-		UserService:   userService,
-		TokenService:  tokenService,
-		CookieService: cookieService,
+		UserService:      userService,
+		UserOrderService: userOrderService,
+		TokenService:     tokenService,
+		CookieService:    cookieService,
 	}, nil
 }

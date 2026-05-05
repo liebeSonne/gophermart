@@ -23,11 +23,11 @@ type User struct {
 }
 
 type UserOrder struct {
-	ID        uuid.UUID       `db:"id"`
-	UserID    uuid.UUID       `db:"user_id"`
-	OrderID   string          `db:"order_id"`
-	Status    OrderStatus     `db:"status"`
-	Accrual   decimal.Decimal `db:"accrual"`
-	CreatedAt time.Time       `db:"created_at"`
-	UpdatedAt time.Time       `db:"updated_at"`
+	ID        uuid.UUID        `db:"id"`
+	UserID    uuid.UUID        `db:"user_id"`
+	OrderID   string           `db:"order_id"`
+	Status    OrderStatus      `db:"status"`
+	Accrual   *decimal.Decimal `db:"accrual"`
+	CreatedAt time.Time        `db:"created_at"`
+	UpdatedAt time.Time        `db:"updated_at"`
 }

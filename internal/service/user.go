@@ -53,12 +53,12 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 	err = s.uowFactory.ExecuteWithUnitOfWork(ctx, func(provider uow.RepositoryProvider) error {
 		userRepository := provider.UserRepository()
 
-		var user *model.User
-		user, err = userRepository.FindByLogin(ctx, input.Login)
+		var userPtr *model.User
+		userPtr, err = userRepository.FindByLogin(ctx, input.Login)
 		if err != nil {
 			return err
 		}
-		if user != nil {
+		if userPtr != nil {
 			return ErrUserLoginExists
 		}
 

@@ -16,6 +16,7 @@ func initRouter(
 ) (http.Handler, error) {
 	s := handler.NewServer(
 		dependency.UserService,
+		dependency.UserOrderService,
 		dependency.TokenService,
 		dependency.CookieService,
 		logger,

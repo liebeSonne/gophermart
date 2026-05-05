@@ -18,6 +18,7 @@ type UserOrderRepository interface {
 	NextID(ctx context.Context) uuid.UUID
 	Store(ctx context.Context, items []model.UserOrder) error
 	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error)
+	FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error)
 }
 
 func NewUserOrderRepository(
@@ -97,4 +98,29 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 	}
 
 	return items, nil
+}
+
+func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error) {
+	const sqlQuery = `
+		SELECT id, user_id, order_id, status, accrual, create_at, updated_at
+		FROM user_order 
+		WHERE order_id = $1 
+		LIMIT 1
+	`
+
+	var item model.UserOrder
+	var orderStatus int
+
+	row := r.client.QueryRow(ctx, sqlQuery, orderID)
+	err := row.Scan(&item.ID, &item.UserID, &item.OrderID, &orderStatus, &item.Accrual, &item.CreatedAt, &item.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error on scan row: %w", err)
+	}
+
+	item.Status = model.OrderStatus(orderStatus)
+
+	return &item, nil
 }
