@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	pgxdecimal "github.com/jackc/pgx-shopspring-decimal"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -18,7 +20,17 @@ func NewClient(
 	ctx context.Context,
 	dataSourceName string,
 ) (Client, error) {
-	pool, err := pgxpool.New(ctx, dataSourceName)
+	config, err := pgxpool.ParseConfig(dataSourceName)
+	if err != nil {
+		return nil, fmt.Errorf("pgxpool.ParseConfig: %w", err)
+	}
+
+	config.AfterConnect = func(_ context.Context, conn *pgx.Conn) error {
+		pgxdecimal.Register(conn.TypeMap())
+		return nil
+	}
+
+	pool, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
 		return nil, fmt.Errorf("erro on pgxpool.New: %w", err)
 	}

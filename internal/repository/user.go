@@ -16,7 +16,7 @@ import (
 var ErrUserNotFound = errors.New("user not found")
 
 type UserRepository interface {
-	NextID() uuid.UUID
+	NextID(ctx context.Context) uuid.UUID
 	Store(ctx context.Context, user model.User) error
 	GetByID(ctx context.Context, userID uuid.UUID) (model.User, error)
 	FindByLogin(ctx context.Context, login string) (*model.User, error)
@@ -34,7 +34,7 @@ type userRepository struct {
 	pool *pgxpool.Pool
 }
 
-func (r *userRepository) NextID() uuid.UUID {
+func (r *userRepository) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 

@@ -52,7 +52,7 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 		return model.User{}, err
 	}
 
-	userID := s.userRepository.NextID()
+	userID := s.userRepository.NextID(ctx)
 
 	newUser := model.User{
 		ID:       userID,

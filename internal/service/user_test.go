@@ -100,7 +100,7 @@ func TestUserService_Create(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			userRepository := repository.NewMockUserRepository(t)
 			userRepository.EXPECT().FindByLogin(t.Context(), tc.on.input.Login).Return(tc.when.findUser, tc.when.findUserErr).Maybe()
-			userRepository.EXPECT().NextID().Return(uuid.New()).Maybe()
+			userRepository.EXPECT().NextID(t.Context()).Return(uuid.New()).Maybe()
 			userRepository.EXPECT().Store(t.Context(), mock.Anything).Return(tc.when.storeErr).Maybe()
 
 			passwordService := NewMockPasswordService(t)

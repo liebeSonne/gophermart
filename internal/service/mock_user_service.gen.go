@@ -38,72 +38,6 @@ func (_m *MockUserService) EXPECT() *MockUserService_Expecter {
 	return &MockUserService_Expecter{mock: &_m.Mock}
 }
 
-// CheckPassword provides a mock function for the type MockUserService
-func (_mock *MockUserService) LoginUser(ctx context.Context, input LoginUserInput) (bool, error) {
-	ret := _mock.Called(ctx, input)
-
-	if len(ret) == 0 {
-		panic("no return value specified for Login")
-	}
-
-	var r0 bool
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, LoginUserInput) (bool, error)); ok {
-		return returnFunc(ctx, input)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, LoginUserInput) bool); ok {
-		r0 = returnFunc(ctx, input)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, LoginUserInput) error); ok {
-		r1 = returnFunc(ctx, input)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockUserService_CheckPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Login'
-type MockUserService_CheckPassword_Call struct {
-	*mock.Call
-}
-
-// CheckPassword is a helper method to define mock.On call
-//   - ctx context.Context
-//   - input LoginUserInput
-func (_e *MockUserService_Expecter) CheckPassword(ctx interface{}, input interface{}) *MockUserService_CheckPassword_Call {
-	return &MockUserService_CheckPassword_Call{Call: _e.mock.On("Login", ctx, input)}
-}
-
-func (_c *MockUserService_CheckPassword_Call) Run(run func(ctx context.Context, input LoginUserInput)) *MockUserService_CheckPassword_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 LoginUserInput
-		if args[1] != nil {
-			arg1 = args[1].(LoginUserInput)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockUserService_CheckPassword_Call) Return(b bool, err error) *MockUserService_CheckPassword_Call {
-	_c.Call.Return(b, err)
-	return _c
-}
-
-func (_c *MockUserService_CheckPassword_Call) RunAndReturn(run func(ctx context.Context, input LoginUserInput) (bool, error)) *MockUserService_CheckPassword_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // Create provides a mock function for the type MockUserService
 func (_mock *MockUserService) Create(ctx context.Context, input CreateUserInput) (model.User, error) {
 	ret := _mock.Called(ctx, input)
@@ -166,6 +100,72 @@ func (_c *MockUserService_Create_Call) Return(user model.User, err error) *MockU
 }
 
 func (_c *MockUserService_Create_Call) RunAndReturn(run func(ctx context.Context, input CreateUserInput) (model.User, error)) *MockUserService_Create_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// Login provides a mock function for the type MockUserService
+func (_mock *MockUserService) Login(ctx context.Context, input LoginUserInput) (model.User, error) {
+	ret := _mock.Called(ctx, input)
+
+	if len(ret) == 0 {
+		panic("no return value specified for Login")
+	}
+
+	var r0 model.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, LoginUserInput) (model.User, error)); ok {
+		return returnFunc(ctx, input)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, LoginUserInput) model.User); ok {
+		r0 = returnFunc(ctx, input)
+	} else {
+		r0 = ret.Get(0).(model.User)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, LoginUserInput) error); ok {
+		r1 = returnFunc(ctx, input)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserService_Login_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Login'
+type MockUserService_Login_Call struct {
+	*mock.Call
+}
+
+// Login is a helper method to define mock.On call
+//   - ctx context.Context
+//   - input LoginUserInput
+func (_e *MockUserService_Expecter) Login(ctx interface{}, input interface{}) *MockUserService_Login_Call {
+	return &MockUserService_Login_Call{Call: _e.mock.On("Login", ctx, input)}
+}
+
+func (_c *MockUserService_Login_Call) Run(run func(ctx context.Context, input LoginUserInput)) *MockUserService_Login_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 LoginUserInput
+		if args[1] != nil {
+			arg1 = args[1].(LoginUserInput)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserService_Login_Call) Return(user model.User, err error) *MockUserService_Login_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *MockUserService_Login_Call) RunAndReturn(run func(ctx context.Context, input LoginUserInput) (model.User, error)) *MockUserService_Login_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -174,16 +174,16 @@ func (_c *MockUserRepository_GetByID_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // NextID provides a mock function for the type MockUserRepository
-func (_mock *MockUserRepository) NextID() uuid.UUID {
-	ret := _mock.Called()
+func (_mock *MockUserRepository) NextID(ctx context.Context) uuid.UUID {
+	ret := _mock.Called(ctx)
 
 	if len(ret) == 0 {
 		panic("no return value specified for NextID")
 	}
 
 	var r0 uuid.UUID
-	if returnFunc, ok := ret.Get(0).(func() uuid.UUID); ok {
-		r0 = returnFunc()
+	if returnFunc, ok := ret.Get(0).(func(context.Context) uuid.UUID); ok {
+		r0 = returnFunc(ctx)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(uuid.UUID)
@@ -198,13 +198,20 @@ type MockUserRepository_NextID_Call struct {
 }
 
 // NextID is a helper method to define mock.On call
-func (_e *MockUserRepository_Expecter) NextID() *MockUserRepository_NextID_Call {
-	return &MockUserRepository_NextID_Call{Call: _e.mock.On("NextID")}
+//   - ctx context.Context
+func (_e *MockUserRepository_Expecter) NextID(ctx interface{}) *MockUserRepository_NextID_Call {
+	return &MockUserRepository_NextID_Call{Call: _e.mock.On("NextID", ctx)}
 }
 
-func (_c *MockUserRepository_NextID_Call) Run(run func()) *MockUserRepository_NextID_Call {
+func (_c *MockUserRepository_NextID_Call) Run(run func(ctx context.Context)) *MockUserRepository_NextID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -214,7 +221,7 @@ func (_c *MockUserRepository_NextID_Call) Return(uUID uuid.UUID) *MockUserReposi
 	return _c
 }
 
-func (_c *MockUserRepository_NextID_Call) RunAndReturn(run func() uuid.UUID) *MockUserRepository_NextID_Call {
+func (_c *MockUserRepository_NextID_Call) RunAndReturn(run func(ctx context.Context) uuid.UUID) *MockUserRepository_NextID_Call {
 	_c.Call.Return(run)
 	return _c
 }
