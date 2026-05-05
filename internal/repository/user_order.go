@@ -73,6 +73,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 		SELECT id, user_id, order_id, status, accrual, created_at, updated_at
 		FROM user_order 
 		WHERE user_id = $1 
+		ORDER BY created_at DESC 
 	`
 
 	rows, err := r.client.Query(ctx, sqlQuery, userID)
