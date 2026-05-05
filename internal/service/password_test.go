@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -77,6 +78,62 @@ func TestPasswordService_CreateHash(t *testing.T) {
 
 			assertPassHash(t, tc.on.password1, tc.on.password2, passHash11, passHash12, err11, err12)
 			assertPassHash(t, tc.on.password1, tc.on.password2, passHash21, passHash22, err21, err22)
+
+			assertSecretKeyPassHash(t, tc.when.secretKey1, tc.when.secretKey2, passHash11, passHash21, err11, err21)
+			assertSecretKeyPassHash(t, tc.when.secretKey1, tc.when.secretKey2, passHash12, passHash22, err12, err22)
+		})
+	}
+}
+
+func TestPasswordService_CheckHash(t *testing.T) {
+	password1 := "password 1"
+	password2 := "password 2"
+	secretKey1 := []byte("secret1")
+
+	s := NewPasswordService(secretKey1)
+
+	passHash1, err := s.CreateHash(t.Context(), password1)
+	require.NoError(t, err)
+	passHash2, err := s.CreateHash(t.Context(), password2)
+	require.NoError(t, err)
+
+	type on struct {
+		password string
+		passHash string
+	}
+	type want struct {
+		ok  bool
+		err error
+	}
+	testCases := []struct {
+		name string
+		on   on
+		want want
+	}{
+		{
+			"check ok",
+			on{password1, passHash1},
+			want{true, nil},
+		},
+		{
+			"check not ok",
+			on{password1, passHash2},
+			want{false, nil},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ok, err := s.CheckHash(t.Context(), tc.on.password, tc.on.passHash)
+
+			if tc.want.err != nil {
+				require.Error(t, err)
+				require.ErrorContains(t, err, tc.want.err.Error())
+				return
+			}
+
+			require.NoError(t, err)
+			assert.Equal(t, tc.want.ok, ok)
 		})
 	}
 }
@@ -91,10 +148,21 @@ func asserPassHashErr(t *testing.T, expect, actual error) {
 }
 
 func assertPassHash(t *testing.T, pass1, pass2, hash1, hash2 string, err1, err2 error) {
-	if err1 == nil && err2 == nil && pass1 == pass2 {
-		assert.Equal(t, hash1, hash2)
+	if err1 == nil && err2 == nil {
+		if pass1 == pass2 {
+			assert.Equal(t, hash1, hash2)
+		} else {
+			assert.NotEqual(t, hash1, hash2)
+		}
 	}
-	if err1 == nil && err2 == nil && pass1 != pass2 {
-		assert.NotEqual(t, hash1, hash2)
+}
+
+func assertSecretKeyPassHash(t *testing.T, secret1, secret2 []byte, hash1, hash2 string, err1, err2 error) {
+	if err1 == nil && err2 == nil {
+		if bytes.Equal(secret1, secret2) {
+			assert.Equal(t, hash1, hash2)
+		} else {
+			assert.NotEqual(t, hash1, hash2)
+		}
 	}
 }
