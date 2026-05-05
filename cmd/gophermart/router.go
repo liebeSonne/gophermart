@@ -19,6 +19,7 @@ func initRouter(
 	s := handler.NewServer(
 		dependency.UserService,
 		dependency.UserOrderService,
+		dependency.UserOrderProvider,
 		dependency.TokenService,
 		dependency.CookieService,
 		logger,

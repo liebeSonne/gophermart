@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -12,31 +13,35 @@ import (
 	"github.com/liebeSonne/gophermart/internal/auth"
 	"github.com/liebeSonne/gophermart/internal/handler/cookie"
 	"github.com/liebeSonne/gophermart/internal/model"
+	"github.com/liebeSonne/gophermart/internal/provider"
 	"github.com/liebeSonne/gophermart/internal/service"
 )
 
 func NewServer(
 	userService service.UserService,
 	userOrderService service.UserOrderService,
+	userOrderProvider provider.UserOrderProvider,
 	tokenService auth.TokenService,
 	cookieService cookie.Service,
 	logger *logrus.Logger,
 ) server.ServerInterface {
 	return &Server{
-		userService:      userService,
-		userOrderService: userOrderService,
-		tokenService:     tokenService,
-		cookieService:    cookieService,
-		logger:           logger,
+		userService:       userService,
+		userOrderService:  userOrderService,
+		userOrderProvider: userOrderProvider,
+		tokenService:      tokenService,
+		cookieService:     cookieService,
+		logger:            logger,
 	}
 }
 
 type Server struct {
-	userService      service.UserService
-	userOrderService service.UserOrderService
-	tokenService     auth.TokenService
-	cookieService    cookie.Service
-	logger           *logrus.Logger
+	userService       service.UserService
+	userOrderService  service.UserOrderService
+	userOrderProvider provider.UserOrderProvider
+	tokenService      auth.TokenService
+	cookieService     cookie.Service
+	logger            *logrus.Logger
 }
 
 //nolint:dupl
@@ -58,20 +63,19 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.userService.Create(ctx, input)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error creating user (login: %s)", input.Login)
-
 		if errors.Is(err, service.ErrUserLoginExists) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
 
+		s.logger.WithError(err).Errorf("error creating user (login: '%s')", input.Login)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	err = s.setUserAuthorization(w, r, user)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error setting user (id: %s, login: %s) authorization", user.ID, user.Login)
+		s.logger.WithError(err).Errorf("error setting user (id: '%s', login: '%s') authorization", user.ID, user.Login)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -99,20 +103,19 @@ func (s *Server) LoginUser(w http.ResponseWriter, r *http.Request) {
 
 	user, err := s.userService.Login(ctx, input)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error creating user (login: %s)", input.Login)
-
 		if errors.Is(err, service.ErrNotValidUserLoginPassword) || errors.Is(err, service.ErrUserNotFound) {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
 
+		s.logger.WithError(err).Errorf("error creating user (login: '%s')", input.Login)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	err = s.setUserAuthorization(w, r, user)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error setting user (id: %s, login: %s) authorization", user.ID, user.Login)
+		s.logger.WithError(err).Errorf("error setting user (id: '%s', login: '%s') authorization", user.ID, user.Login)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -153,19 +156,51 @@ func (s *Server) UploadUserOrders(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if errors.Is(err, service.ErrUserOrderAlreadyUploadedByUser) {
-			http.Error(w, http.StatusText(http.StatusOK), http.StatusOK)
+			w.WriteHeader(http.StatusOK)
 			return
 		}
+
+		s.logger.WithError(err).Errorf("error uploading user (userID: '%s') order (orderID: '%s')", userID, orderID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
 	}
 
-	http.Error(w, http.StatusText(http.StatusAccepted), http.StatusAccepted)
+	w.WriteHeader(http.StatusAccepted)
 }
 
 func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
-	// TODO implement me
-	_ = w
-	_ = r
-	panic("implement me")
+	ctx := r.Context()
+
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	items, err := s.userOrderProvider.FindByUserID(ctx, userID)
+	if err != nil {
+		s.logger.WithError(err).Errorf("error getting user (userID: %s) orders", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := convertUserOrdersToAPI(items)
+	if err != nil {
+		s.logger.WithError(err).Errorf("error converting user (userID: %s) orders", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	enc := json.NewEncoder(w)
+	err = enc.Encode(resp)
+
+	if err != nil {
+		fmt.Printf("error: %v", err)
+		return
+	}
 }
 
 func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
