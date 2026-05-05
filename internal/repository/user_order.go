@@ -40,9 +40,10 @@ func (r *userOrderRepository) NextID(_ context.Context) uuid.UUID {
 func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder) error {
 	const sqlQuery = `
 		INSERT INTO user_order (id, user_id, order_id, status, accrual) VALUES %s
-		ON DUPLICATE KEY UPDATE
-			status = VALUES(status),
-			accrual = VALUES(accrual),
+		ON CONFLICT (id)
+		DO UPDATE SET 
+			status = EXCLUDED.status,
+			accrual = EXCLUDED.accrual,
 		 	updated_at = NOW()
 	`
 
