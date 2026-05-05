@@ -19,3 +19,9 @@ packages:
     interfaces:
       UserService: { }
       PasswordService: { }
+  github.com/liebeSonne/gophermart/internal/auth:
+    interfaces:
+      TokenService: { }
+  github.com/liebeSonne/gophermart/internal/handler/cookie:
+    interfaces:
+      Service: { }

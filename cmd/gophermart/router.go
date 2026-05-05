@@ -8,6 +8,7 @@ import (
 
 	"github.com/liebeSonne/gophermart/api/server"
 	"github.com/liebeSonne/gophermart/internal/handler"
+	"github.com/liebeSonne/gophermart/internal/handler/auth"
 )
 
 func initRouter(
@@ -21,7 +22,13 @@ func initRouter(
 		dependency.CookieService,
 		logger,
 	)
+
 	r := chi.NewMux()
+
+	r.Use(func(h http.Handler) http.Handler {
+		return auth.NewAuthMiddleware(h, dependency.TokenService, dependency.CookieService, logger)
+	})
+
 	h := server.HandlerFromMux(s, r)
 	return h, nil
 }
