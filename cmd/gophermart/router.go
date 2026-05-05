@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/api/server"
@@ -25,6 +26,7 @@ func initRouter(
 
 	r := chi.NewMux()
 
+	r.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger}))
 	r.Use(func(h http.Handler) http.Handler {
 		return auth.NewAuthMiddleware(h, dependency.TokenService, dependency.CookieService, logger)
 	})
