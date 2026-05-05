@@ -7,7 +7,8 @@ CREATE TABLE user_order
     accrual    NUMERIC(15, 2) NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE
+    CONSTRAINT fk_user_id FOREIGN KEY (user_id) REFERENCES "user"(id) ON DELETE CASCADE,
+    CONSTRAINT unq_order_id UNIQUE(order_id)
 );
 
 CREATE INDEX user_order_user_id_idx ON user_order (user_id);
