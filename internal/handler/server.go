@@ -3,7 +3,6 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -171,6 +170,8 @@ func (s *Server) UploadUserOrders(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
+	w.Header().Set("Content-Type", "application/json")
+
 	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -184,6 +185,11 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if len(items) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
 	resp, err := convertUserOrdersToAPI(items)
 	if err != nil {
 		s.logger.WithError(err).Errorf("error converting user (userID: %s) orders", userID)
@@ -191,14 +197,14 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 
 	enc := json.NewEncoder(w)
 	err = enc.Encode(resp)
 
 	if err != nil {
-		fmt.Printf("error: %v", err)
+		s.logger.WithError(err).Errorf("error encoding user (userID: %s) orders", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 }
