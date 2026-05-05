@@ -1,25 +1,61 @@
-# go-musthave-diploma-tpl
+# Сервис "Гофермарт" 
+ 
+Накопительная система лояльности
 
-Шаблон репозитория для индивидуального дипломного проекта курса «Go-разработчик»
+- [Структура базы данных](docs/Database.mmd)
+- [Диаграмма последовательности](docs/Sequence.mmd)
 
-# Начало работы
-
-1. Склонируйте репозиторий в любую подходящую директорию на вашем компьютере.
-2. В корне репозитория выполните команду `go mod init <name>` (где `<name>` — адрес вашего репозитория на GitHub без
-   префикса `https://`) для создания модуля
-
-# Обновление шаблона
-
-Чтобы иметь возможность получать обновления автотестов и других частей шаблона, выполните команду:
+## Сборка
 
 ```
-git remote add -m master template https://github.com/yandex-praktikum/go-musthave-diploma-tpl.git
+make build
 ```
 
-Для обновления кода автотестов выполните команду:
+## Запуск docker-compose
+
+Зависимости:
+- база данных `PostgreSQL`
+
+```bash
+# -d - для запуска в фоне
+docker compose up -d
+```
+
+Остановка `docker-compose`
+```bash
+docker compose down
+```
+
+Просмотр логов
+```bash
+# docker compose logs -f <имя_контейнера>
+docker compose logs -f db
+```
+
+### PostgreSQL
+
+Подключение к базе данных через консоль:
+```bash
+# docker exec -it <имя_контейнера> psql -U <пользователь> -d <база_данных>
+docker compose exec db psql -U username -d dbname
+```
+
+Консольные команды:
+- `\dt`- список таблиц
+- `\d  <имя_таблицы>` - структура таблицы
+- `\q` - выход из консоли
+
+## Запуск сервиса
 
 ```
-git fetch template && git checkout template/master .github
-```
+# параметры запуска
+./cmd/gophermart/gophermart -h
 
-Затем добавьте полученные изменения в свой репозиторий.
+# пример запуска
+./cmd/gophermart/gophermart \
+    -a ":8080" \
+    -d "host=localhost user=username password=password dbname=dbname sslmode=disable" \
+    -ll "debug" \
+    -lf "text"
+
+```
