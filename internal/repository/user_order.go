@@ -5,13 +5,13 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/liebeSonne/gophermart/internal/model"
+	"github.com/liebeSonne/gophermart/internal/repository/database"
 )
 
 type UserOrderRepository interface {
@@ -21,68 +21,46 @@ type UserOrderRepository interface {
 }
 
 func NewUserOrderRepository(
-	pool *pgxpool.Pool,
+	client database.ContextClient,
 ) UserOrderRepository {
 	return &userOrderRepository{
-		pool: pool,
+		client: client,
 	}
 }
 
 type userOrderRepository struct {
-	pool *pgxpool.Pool
+	client database.ContextClient
 }
 
 func (r *userOrderRepository) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 
-func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder) (err error) {
-	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("error on begin transaction: %w", err)
-	}
-
-	defer func() {
-		rollbackErr := tx.Rollback(ctx)
-		if rollbackErr != nil {
-			err = errors.Join(err, fmt.Errorf("error on rollback transaction: %w", rollbackErr))
-		}
-	}()
-
+func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder) error {
 	const sqlQuery = `
-		INSERT INTO user_order (id, user_id, order_id, status, accrual) VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO user_order (id, user_id, order_id, status, accrual) VALUES %s
 		ON DUPLICATE KEY UPDATE
 			status = VALUES(status),
 			accrual = VALUES(accrual),
 		 	updated_at = NOW()
 	`
 
-	stmtName := "insert_user_order"
-	_, err = tx.Conn().Prepare(ctx, stmtName, sqlQuery)
-	if err != nil {
-		return fmt.Errorf("error on prepare statement: %w", err)
-	}
+	for chunkItems := range slices.Chunk(items, chunkSize) {
+		values := make([]string, 0, len(chunkItems))
+		args := make([]any, 0, len(chunkItems)*5)
 
-	insertErrors := make([]error, 0)
-	for _, userOrder := range items {
-		_, err = tx.Exec(ctx, stmtName, userOrder.ID, userOrder.UserID, userOrder.OrderID, userOrder.Status, userOrder.Accrual)
-		if err != nil {
-			var pgErr *pgconn.PgError
-			if errors.As(err, &pgErr) && pgerrcode.UniqueViolation == pgErr.Code {
-				err = NewErrConflictOrderID(userOrder.OrderID, err)
-			}
-			insertErrors = append(insertErrors, err)
+		for i, item := range chunkItems {
+			base := i * 5
+			params := fmt.Sprintf("($%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5)
+			values = append(values, params)
+			args = append(args, item.ID, item.UserID, item.OrderID, item.Status, item.Accrual)
 		}
-	}
 
-	err = errors.Join(insertErrors...)
-	if err != nil {
-		return fmt.Errorf("error on insert: %w", err)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("error on commit transaction: %w", err)
+		query := fmt.Sprintf(sqlQuery, strings.Join(values, ","))
+		_, err := r.client.Exec(ctx, query, args...)
+		if err != nil {
+			return fmt.Errorf("error on executing statement: %w", err)
+		}
 	}
 
 	return nil
@@ -95,7 +73,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 		WHERE user_id = $1 
 	`
 
-	rows, err := r.pool.Query(ctx, sqlQuery, userID)
+	rows, err := r.client.Query(ctx, sqlQuery, userID)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil

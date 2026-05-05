@@ -8,6 +8,13 @@ packages:
     interfaces:
       UserRepository: { }
       UserOrderRepository: { }
+  github.com/liebeSonne/gophermart/internal/repository/uow:
+    interfaces:
+      UnitOfWorkFactory: {}
+      RepositoryProvider: {}
+  github.com/liebeSonne/gophermart/internal/provider:
+    interfaces:
+      UserProvider: { }
   github.com/liebeSonne/gophermart/internal/service:
     interfaces:
       UserService: { }

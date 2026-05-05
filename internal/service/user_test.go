@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -10,7 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/liebeSonne/gophermart/internal/model"
+	"github.com/liebeSonne/gophermart/internal/provider"
 	"github.com/liebeSonne/gophermart/internal/repository"
+	"github.com/liebeSonne/gophermart/internal/repository/uow"
 )
 
 func TestUserService_Create(t *testing.T) {
@@ -103,10 +106,20 @@ func TestUserService_Create(t *testing.T) {
 			userRepository.EXPECT().NextID(t.Context()).Return(uuid.New()).Maybe()
 			userRepository.EXPECT().Store(t.Context(), mock.Anything).Return(tc.when.storeErr).Maybe()
 
+			repositoryProvider := uow.NewMockRepositoryProvider(t)
+			repositoryProvider.EXPECT().UserRepository().Return(userRepository).Maybe()
+
+			uowFactory := uow.NewMockUnitOfWorkFactory(t)
+			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything).RunAndReturn(func(_ context.Context, f func(provider uow.RepositoryProvider) error) error {
+				return f(repositoryProvider)
+			}).Maybe()
+
+			userProvider := provider.NewMockUserProvider(t)
+
 			passwordService := NewMockPasswordService(t)
 			passwordService.EXPECT().CreateHash(t.Context(), tc.on.input.Password).Return(tc.when.passHash, tc.when.passHashErr).Maybe()
 
-			s := NewUserService(userRepository, passwordService)
+			s := NewUserService(uowFactory, passwordService, userProvider)
 
 			user, err := s.Create(t.Context(), tc.on.input)
 
@@ -193,13 +206,15 @@ func TestUserService_CheckPassword(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			userRepository := repository.NewMockUserRepository(t)
-			userRepository.EXPECT().FindByLogin(t.Context(), tc.on.input.Login).Return(tc.when.findUser, tc.when.findUserErr).Maybe()
+			uowFactory := uow.NewMockUnitOfWorkFactory(t)
+
+			userProvider := provider.NewMockUserProvider(t)
+			userProvider.EXPECT().FindByLogin(t.Context(), tc.on.input.Login).Return(tc.when.findUser, tc.when.findUserErr).Maybe()
 
 			passwordService := NewMockPasswordService(t)
 			passwordService.EXPECT().CheckHash(t.Context(), tc.on.input.Password, mock.Anything).Return(tc.when.checkPass, tc.when.checkPassErr).Maybe()
 
-			s := NewUserService(userRepository, passwordService)
+			s := NewUserService(uowFactory, passwordService, userProvider)
 
 			user, err := s.Login(t.Context(), tc.on.input)
 

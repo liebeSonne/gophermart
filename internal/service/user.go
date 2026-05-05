@@ -6,7 +6,8 @@ import (
 	"fmt"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository"
+	"github.com/liebeSonne/gophermart/internal/provider"
+	"github.com/liebeSonne/gophermart/internal/repository/uow"
 )
 
 var ErrUserLoginExists = errors.New("user login exists")
@@ -19,18 +20,21 @@ type UserService interface {
 }
 
 func NewUserService(
-	userRepository repository.UserRepository,
+	uowFactory uow.UnitOfWorkFactory,
 	passwordService PasswordService,
+	userProvider provider.UserProvider,
 ) UserService {
 	return &userService{
-		userRepository:  userRepository,
+		uowFactory:      uowFactory,
 		passwordService: passwordService,
+		userProvider:    userProvider,
 	}
 }
 
 type userService struct {
-	userRepository  repository.UserRepository
+	uowFactory      uow.UnitOfWorkFactory
 	passwordService PasswordService
+	userProvider    provider.UserProvider
 }
 
 func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.User, error) {
@@ -39,28 +43,35 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 		return model.User{}, err
 	}
 
-	user, err := s.userRepository.FindByLogin(ctx, input.Login)
-	if err != nil {
-		return model.User{}, err
-	}
-	if user != nil {
-		return model.User{}, ErrUserLoginExists
-	}
-
 	passHash, err := s.passwordService.CreateHash(ctx, input.Password)
 	if err != nil {
 		return model.User{}, err
 	}
 
-	userID := s.userRepository.NextID(ctx)
+	var newUser model.User
 
-	newUser := model.User{
-		ID:       userID,
-		Login:    input.Login,
-		PassHash: passHash,
-	}
+	err = s.uowFactory.ExecuteWithUnitOfWork(ctx, func(provider uow.RepositoryProvider) error {
+		userRepository := provider.UserRepository()
 
-	err = s.userRepository.Store(ctx, newUser)
+		var user *model.User
+		user, err = userRepository.FindByLogin(ctx, input.Login)
+		if err != nil {
+			return err
+		}
+		if user != nil {
+			return ErrUserLoginExists
+		}
+
+		userID := userRepository.NextID(ctx)
+
+		newUser = model.User{
+			ID:       userID,
+			Login:    input.Login,
+			PassHash: passHash,
+		}
+
+		return userRepository.Store(ctx, newUser)
+	})
 	if err != nil {
 		return model.User{}, err
 	}
@@ -74,7 +85,7 @@ func (s *userService) Login(ctx context.Context, input LoginUserInput) (model.Us
 		return model.User{}, err
 	}
 
-	user, err := s.userRepository.FindByLogin(ctx, input.Login)
+	user, err := s.userProvider.FindByLogin(ctx, input.Login)
 	if err != nil {
 		return model.User{}, err
 	}

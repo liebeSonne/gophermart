@@ -7,10 +7,9 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/liebeSonne/gophermart/internal/model"
+	"github.com/liebeSonne/gophermart/internal/repository/database"
 )
 
 var ErrUserNotFound = errors.New("user not found")
@@ -23,15 +22,15 @@ type UserRepository interface {
 }
 
 func NewUserRepository(
-	pool *pgxpool.Pool,
+	client database.ContextClient,
 ) UserRepository {
 	return &userRepository{
-		pool: pool,
+		client: client,
 	}
 }
 
 type userRepository struct {
-	pool *pgxpool.Pool
+	client database.ContextClient
 }
 
 func (r *userRepository) NextID(_ context.Context) uuid.UUID {
@@ -39,30 +38,13 @@ func (r *userRepository) NextID(_ context.Context) uuid.UUID {
 }
 
 func (r *userRepository) Store(ctx context.Context, user model.User) error {
-	tx, err := r.pool.BeginTx(ctx, pgx.TxOptions{})
-	if err != nil {
-		return fmt.Errorf("error on begin transaction: %w", err)
-	}
-
-	defer func() {
-		err = tx.Rollback(ctx)
-		if err != nil {
-			fmt.Printf("error on rollback transaction: %v\n", err)
-		}
-	}()
-
 	const sqlQuery = `
 		INSERT INTO "user" (id, login, passhash) VALUES ($1, $2, $3)
 	`
 
-	_, err = tx.Exec(ctx, sqlQuery, user.ID, user.Login, user.PassHash)
+	_, err := r.client.Exec(ctx, sqlQuery, user.ID, user.Login, user.PassHash)
 	if err != nil {
 		return fmt.Errorf("error on insert user: %w", err)
-	}
-
-	err = tx.Commit(ctx)
-	if err != nil {
-		return fmt.Errorf("error on commit transaction: %w", err)
 	}
 
 	return nil
@@ -77,7 +59,7 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.U
 	`
 
 	var user model.User
-	row := r.pool.QueryRow(ctx, sqlQuery, userID)
+	row := r.client.QueryRow(ctx, sqlQuery, userID)
 	err := row.Scan(&user.ID, &user.Login, &user.PassHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -98,7 +80,7 @@ func (r *userRepository) FindByLogin(ctx context.Context, login string) (*model.
 	`
 
 	var user model.User
-	row := r.pool.QueryRow(ctx, sqlQuery, login)
+	row := r.client.QueryRow(ctx, sqlQuery, login)
 	err := row.Scan(&user.ID, &user.Login, &user.PassHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

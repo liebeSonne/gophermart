@@ -5,6 +5,7 @@ import (
 	"github.com/liebeSonne/gophermart/internal/config"
 	"github.com/liebeSonne/gophermart/internal/handler/cookie"
 	"github.com/liebeSonne/gophermart/internal/repository"
+	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service"
 )
 
@@ -18,9 +19,10 @@ func newDependencyContainer(
 	cfg config.Config,
 	connection *connectionContainer,
 ) (*dependencyContainer, error) {
-	userRepository := repository.NewUserRepository(connection.DBClient.Pool())
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))
-	userService := service.NewUserService(userRepository, passwordService)
+	uowFactory := uow.NewUnitOfWorkFactory(connection.DBClient.Pool())
+	userProvider := repository.NewUserRepository(connection.DBClient.Pool())
+	userService := service.NewUserService(uowFactory, passwordService, userProvider)
 	tokenService := auth.NewTokenService(cfg.AuthSecretKey, cfg.AuthTokenExpires)
 	cookieService := cookie.NewService(cfg.AuthCookieTokenKey)
 
