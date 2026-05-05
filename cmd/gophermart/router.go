@@ -27,6 +27,7 @@ func initRouter(
 	r := chi.NewMux()
 
 	r.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger}))
+	r.Use(middleware.AllowContentEncoding("deflate", "gzip"))
 	r.Use(func(h http.Handler) http.Handler {
 		return auth.NewAuthMiddleware(h, dependency.TokenService, dependency.CookieService, logger)
 	})
