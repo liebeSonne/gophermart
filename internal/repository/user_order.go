@@ -69,7 +69,7 @@ func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder
 
 func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error) {
 	const sqlQuery = `
-		SELECT id, user_id, order_id, status, accrual, create_at, updated_at
+		SELECT id, user_id, order_id, status, accrual, created_at, updated_at
 		FROM user_order 
 		WHERE user_id = $1 
 	`
@@ -102,7 +102,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 
 func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error) {
 	const sqlQuery = `
-		SELECT id, user_id, order_id, status, accrual, create_at, updated_at
+		SELECT id, user_id, order_id, status, accrual, created_at, updated_at
 		FROM user_order 
 		WHERE order_id = $1 
 		LIMIT 1
