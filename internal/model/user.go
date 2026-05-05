@@ -5,7 +5,7 @@ import (
 )
 
 type User struct {
-	ID       uuid.UUID
-	Login    string
-	PassHash string
+	ID       uuid.UUID `db:"id"`
+	Login    string    `db:"login"`
+	PassHash string    `db:"passhash"`
 }

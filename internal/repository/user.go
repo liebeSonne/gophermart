@@ -52,7 +52,7 @@ func (r *userRepository) Store(ctx context.Context, user model.User) error {
 	}()
 
 	const sqlQuery = `
-		INSERT INTO user (id, login, passhash) VALUES ($1, $2, $3)
+		INSERT INTO "user" (id, login, passhash) VALUES ($1, $2, $3)
 	`
 
 	_, err = tx.Exec(ctx, sqlQuery, user.ID, user.Login, user.PassHash)
@@ -70,9 +70,9 @@ func (r *userRepository) Store(ctx context.Context, user model.User) error {
 
 func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.User, error) {
 	const sqlQuery = `
-		SELECT id, login, passhash 
-		FROM user 
-		WHERE id = $1 
+		SELECT u.id, u.login, u.passhash 
+		FROM "user" u
+		WHERE u.id = $1 
 		LIMIT 1
 	`
 
@@ -91,9 +91,9 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.U
 
 func (r *userRepository) FindByLogin(ctx context.Context, login string) (*model.User, error) {
 	const sqlQuery = `
-		SELECT id, login, passhash 
-		FROM user 
-		WHERE login = $1 
+		SELECT u.id, u.login, u.passhash 
+		FROM "user" u
+		WHERE u.login = $1 
 		LIMIT 1
 	`
 
