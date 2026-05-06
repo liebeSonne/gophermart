@@ -20,6 +20,45 @@ import (
 	"github.com/oapi-codegen/runtime"
 )
 
+// Defines values for GetOrdersResponseDataStatus.
+const (
+	INVALID    GetOrdersResponseDataStatus = "INVALID"
+	PROCESSED  GetOrdersResponseDataStatus = "PROCESSED"
+	PROCESSING GetOrdersResponseDataStatus = "PROCESSING"
+	REGISTERED GetOrdersResponseDataStatus = "REGISTERED"
+)
+
+// Valid indicates whether the value is a known member of the GetOrdersResponseDataStatus enum.
+func (e GetOrdersResponseDataStatus) Valid() bool {
+	switch e {
+	case INVALID:
+		return true
+	case PROCESSED:
+		return true
+	case PROCESSING:
+		return true
+	case REGISTERED:
+		return true
+	default:
+		return false
+	}
+}
+
+// GetOrdersResponseData defines model for GetOrdersResponseData.
+type GetOrdersResponseData struct {
+	// Accrual рассчитанные баллы к начислению, при отсутствии начисления (status не равен PROCESSED)— поле отсутствует в ответе
+	Accrual *float32 `json:"accrual,omitempty"`
+
+	// Order номер заказа
+	Order string `json:"order"`
+
+	// Status статус расчёта начисления
+	Status GetOrdersResponseDataStatus `json:"status"`
+}
+
+// GetOrdersResponseDataStatus статус расчёта начисления
+type GetOrdersResponseDataStatus string
+
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -193,7 +232,7 @@ type ClientWithResponsesInterface interface {
 type GetOrdersResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *GetOrdersResponse
+	JSON200      *GetOrdersResponseData
 }
 
 // Status returns HTTPResponse.Status
@@ -244,7 +283,7 @@ func ParseGetOrdersResponse(rsp *http.Response) (*GetOrdersResponse, error) {
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest GetOrdersResponse
+		var dest GetOrdersResponseData
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -260,22 +299,22 @@ func ParseGetOrdersResponse(rsp *http.Response) (*GetOrdersResponse, error) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"dFXdbhpHFH6V0WkvWmnrXbtJle6dVSMLqXUiHPUm8sUEBrPR/nV2SIMsJANVbclRrUq97yusqTelYDav",
-	"cOYV+iTVOUsBA7mBnZmdmfN95/u+vYBmEqVJrGKTgX8BWmVpEmeKBy+T5AcZ9xrqp67KqvVmEhsVG3o0",
-	"6p1x01AGMY2yZkdFkp7UOxmloQIfThIRJVoJ05Gx2Pc8oRcniVRpEQVx1yghwzD5WbXAAdNLaVdmdBCf",
-	"Q7/fd6ClsqYOUhMkMfiAH+0lFji2N/YaC5xjKXCKJc5wYq+wsAM7xDFN/o05v1vaAZY4FjgVdoCFvcQx",
-	"TuzAjsCBjpItpRlUQxnd++qwbZSm4calu26g03BqRzjHe4eLsEMs6UYsBM7tCD9U5X3EEu+xxA94j7kd",
-	"2vc0VTCM+2p1vNg5tzf4sFn6Azg7mf3GW/EVxEadK02EEWXV64zrWJnnmkA2Fl2lyVQnqdImqFosm03d",
-	"leE2bHuJuR3Ygb3CiR1ijnOusBB4hznOcGZviFacY86vDHDGLZnY3xzBCCaCWCG2+ZeIm9Dk9o5b8UVm",
-	"pOlmtFgIuhrHtCZeNJ5/Vzs9rR19+e/lHxVfM6ph42A7wsIOBXW65IsKO8QCnDXG9r097yk40E50JA34",
-	"0A4TaVYsxt3oNZHoQEKU7dDBnPpBvauaNMWc/rd160AFZgenVCypYGQHYkHwlf2dJnfSQgDibgT+K2jU",
-	"juunL2uN2hE4UD/58fD7Oj0t+KmfHK8GtSM42zaTA2S+QKsWHVdhXFa6ej95/UY1TWW+IG4nbPTAMIWH",
-	"lVZE1suMisThizo48FbprEK3v+fteUxgqmKZBuDD1zzlQCpNh/lwZRq4fHnmXlSU92n+XHGkkDIlkVVv",
-	"gb+SL5+gZaQMG/bVBVDm8KngQCyjtQau4zS6q9b9s8nJmfM47w48byPjZJqGQZNLct9kyUbSfa5VG3z4",
-	"zF1lqLuwn7vtvR2BRkLgPLjm9t8KLPGO5X/HQp6SMNYTISd+D7wnO+S51GRlIhpzzPzFiTckQ3I+jcnL",
-	"ZBU7qFawIFkv9cje4XueHHz7KZRL2tzNb0TfgacVjRv1jSkWuY6Cs+SW4dprnOAdA10mNP3mLNmsG0VS",
-	"92j7n2R9O6L6yByEcIJz+wtn5wPm9tcqXcrHxip2GAv/WYZY9XWYYWlvcWbfk8eZkknVrUzpt/9LrqtD",
-	"8KFjTOq7bpg0ZdhJMuM/85550D/r/xcAAP//",
+	"dFXNbttGF32Vwf2+RQuwJu0mRcqdUQuGgNYJ5KCbwIuJPLYY8K/DURrBEGBJRW3AQY0C3fcVaNVMVcli",
+	"XuHOK/RJintHlRRZ3UicGc7MPeeec3gB7SzJs1SlpoDwArQq8iwtFA9eZtl3Mu211A9dVbj1dpYalRp6",
+	"NOqd8fNYRimNinZHJZKe1DuZ5LGCEI4ykWRaCdORqdgNAqEXJ4lcaZFEadcoIeM4+1Gdggeml9Ouwugo",
+	"PYd+v+/BqSraOspNlKUQAn60l1jh2N7Ya6xwjrXAKdY4w4m9wsoO7BDHNPknlvxubQdY41jgVNgBVvYS",
+	"xzixAzsCDzpKnirNoFrK6N4X+2dGaRpuXLrtBjoNp3aEc7z3uAg7xJpuxErg3I7wgyvvI9Z4jzV+wHss",
+	"7dC+p6mKYdy71fFi59ze4MNm6Q/gbWX2q2DFV5Qada40EUaUudcZ16EyzzWBbC26eiANH5TrLFfaRK7N",
+	"st3WXRk/hm4vsbQDO7BXOLFDLHHOVVYC77DEGc7sDVGLcyz5lQHOuC0T+4snGMVEEDPEOP8SeROafLzj",
+	"VnxWGGm6BS1Wgq7GMa2JF63n3zSOjxsHn/99+ZvjbEY1bBxsR1jZoaBu13xRZYdYgbfG2m6wEzwFD84y",
+	"nUgDIZzFmTQrJtNu8pqI9CAj2rZoYU49of65Rk2xpP/H2vXAgdnCKRVLShjZgVgQfGV/pcmttBCAtJtA",
+	"+ApajcPm8ctGq3EAHjSPvt//tklPC36aR4erQeMATh4bygMyYKTVKR3nMC4rXb2fvX6j2sYZMErPMjZ7",
+	"ZJjCfacVUfQKoxKx/6IJHrxVunDodneCnYAJzFUq8whC+JKnPMil6TAfvswjny8v/AtHeZ/mzxXHCilT",
+	"ElnNUwhXEuYTtEyUYdO+ugDKHT4VPEhlstbAdZxGd9W6hzY5OfE+zby9INjIOZnncdTmkvw3RbaRdv/X",
+	"6gxC+J+/ylF/YUF/u/+2BBuJgXPhmiVwK7DGO7bAHYt5SuJYT4aSON4LnmyR6FKXzkg05rj5g5NvSKbk",
+	"nBqTn8kuduBWsCJpLzXJ/uF7nux9/V9Il9T5m9+KvgdPHZUb9Y0pHrmOivPkluHaa5zgHQNdJjX9lizb",
+	"opskUvdo++9kfzui+sgghHCCc/sTZ+gDlvZnlzD1p+aqtpgL/1oGmftKzLC2tziz78nnTMnEdatQ+u2/",
+	"suvqGELoGJOHvh9nbRl3ssKEz4JnAfRP+v8EAAD//w==",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

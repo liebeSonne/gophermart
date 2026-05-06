@@ -21,7 +21,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetOrdersResponse'
+                $ref: '#/components/schemas/GetOrdersResponseData'
         '204':
           description: заказ не зарегистрирован в системе расчета
         '429':
@@ -44,7 +44,7 @@ components:
             type: string
             example: "No more than 100 requests per minute allowed"
   schemas:
-    GetOrdersResponse:
+    GetOrdersResponseData:
       type: object
       required:
         - order
