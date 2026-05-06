@@ -8,6 +8,8 @@ import (
 type RepositoryProvider interface {
 	UserRepository() repository.UserRepository
 	UserOrderRepository() repository.UserOrderRepository
+	UserBalanceRepository() repository.UserBalanceRepository
+	UserBalanceWithdrawnRepository() repository.UserBalanceWithdrawnRepository
 }
 
 func NewRepositoryProvider(
@@ -28,4 +30,12 @@ func (u *repositoryProvider) UserRepository() repository.UserRepository {
 
 func (u *repositoryProvider) UserOrderRepository() repository.UserOrderRepository {
 	return repository.NewUserOrderRepository(u.client)
+}
+
+func (u *repositoryProvider) UserBalanceRepository() repository.UserBalanceRepository {
+	return repository.NewUserBalanceRepository(u.client)
+}
+
+func (u *repositoryProvider) UserBalanceWithdrawnRepository() repository.UserBalanceWithdrawnRepository {
+	return repository.NewUserBalanceWithdrawnRepository(u.client)
 }

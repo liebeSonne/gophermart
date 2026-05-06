@@ -16,6 +16,7 @@ import (
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
 )
 
+// nolint:goconst
 func TestUserService_Create(t *testing.T) {
 	login1 := "login 1"
 	password1 := "password 1"

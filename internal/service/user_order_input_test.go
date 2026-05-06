@@ -32,6 +32,11 @@ func TestUploadUserOrderInput_Validate(t *testing.T) {
 			on{UploadUserOrderInput{"", userID1}},
 			want{ErrInvalidOrderID},
 		},
+		{
+			"userID is nil",
+			on{UploadUserOrderInput{orderID1, uuid.Nil}},
+			want{ErrInvalidUserID},
+		},
 	}
 
 	for _, tc := range testCases {

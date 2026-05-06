@@ -36,6 +36,98 @@ func (_m *MockRepositoryProvider) EXPECT() *MockRepositoryProvider_Expecter {
 	return &MockRepositoryProvider_Expecter{mock: &_m.Mock}
 }
 
+// UserBalanceRepository provides a mock function for the type MockRepositoryProvider
+func (_mock *MockRepositoryProvider) UserBalanceRepository() repository.UserBalanceRepository {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserBalanceRepository")
+	}
+
+	var r0 repository.UserBalanceRepository
+	if returnFunc, ok := ret.Get(0).(func() repository.UserBalanceRepository); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(repository.UserBalanceRepository)
+		}
+	}
+	return r0
+}
+
+// MockRepositoryProvider_UserBalanceRepository_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserBalanceRepository'
+type MockRepositoryProvider_UserBalanceRepository_Call struct {
+	*mock.Call
+}
+
+// UserBalanceRepository is a helper method to define mock.On call
+func (_e *MockRepositoryProvider_Expecter) UserBalanceRepository() *MockRepositoryProvider_UserBalanceRepository_Call {
+	return &MockRepositoryProvider_UserBalanceRepository_Call{Call: _e.mock.On("UserBalanceRepository")}
+}
+
+func (_c *MockRepositoryProvider_UserBalanceRepository_Call) Run(run func()) *MockRepositoryProvider_UserBalanceRepository_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRepositoryProvider_UserBalanceRepository_Call) Return(userBalanceRepository repository.UserBalanceRepository) *MockRepositoryProvider_UserBalanceRepository_Call {
+	_c.Call.Return(userBalanceRepository)
+	return _c
+}
+
+func (_c *MockRepositoryProvider_UserBalanceRepository_Call) RunAndReturn(run func() repository.UserBalanceRepository) *MockRepositoryProvider_UserBalanceRepository_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UserBalanceWithdrawnRepository provides a mock function for the type MockRepositoryProvider
+func (_mock *MockRepositoryProvider) UserBalanceWithdrawnRepository() repository.UserBalanceWithdrawnRepository {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for UserBalanceWithdrawnRepository")
+	}
+
+	var r0 repository.UserBalanceWithdrawnRepository
+	if returnFunc, ok := ret.Get(0).(func() repository.UserBalanceWithdrawnRepository); ok {
+		r0 = returnFunc()
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(repository.UserBalanceWithdrawnRepository)
+		}
+	}
+	return r0
+}
+
+// MockRepositoryProvider_UserBalanceWithdrawnRepository_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UserBalanceWithdrawnRepository'
+type MockRepositoryProvider_UserBalanceWithdrawnRepository_Call struct {
+	*mock.Call
+}
+
+// UserBalanceWithdrawnRepository is a helper method to define mock.On call
+func (_e *MockRepositoryProvider_Expecter) UserBalanceWithdrawnRepository() *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
+	return &MockRepositoryProvider_UserBalanceWithdrawnRepository_Call{Call: _e.mock.On("UserBalanceWithdrawnRepository")}
+}
+
+func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) Run(run func()) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) Return(userBalanceWithdrawnRepository repository.UserBalanceWithdrawnRepository) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
+	_c.Call.Return(userBalanceWithdrawnRepository)
+	return _c
+}
+
+func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) RunAndReturn(run func() repository.UserBalanceWithdrawnRepository) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UserOrderRepository provides a mock function for the type MockRepositoryProvider
 func (_mock *MockRepositoryProvider) UserOrderRepository() repository.UserOrderRepository {
 	ret := _mock.Called()

@@ -8,6 +8,8 @@ packages:
     interfaces:
       UserRepository: { }
       UserOrderRepository: { }
+      UserBalanceRepository: {}
+      UserBalanceWithdrawnRepository: {}
   github.com/liebeSonne/gophermart/internal/repository/uow:
     interfaces:
       UnitOfWorkFactory: {}

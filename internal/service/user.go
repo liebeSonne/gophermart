@@ -40,7 +40,7 @@ type userService struct {
 func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.User, error) {
 	err := input.Validate()
 	if err != nil {
-		return model.User{}, err
+		return model.User{}, fmt.Errorf("invalid create user input: %w", err)
 	}
 
 	passHash, err := s.passwordService.CreateHash(ctx, input.Password)
@@ -82,7 +82,7 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 func (s *userService) Login(ctx context.Context, input LoginUserInput) (model.User, error) {
 	err := input.Validate()
 	if err != nil {
-		return model.User{}, err
+		return model.User{}, fmt.Errorf("invalid login user input: %w", err)
 	}
 
 	user, err := s.userProvider.FindByLogin(ctx, input.Login)

@@ -39,23 +39,23 @@ func (r *userOrderRepository) NextID(_ context.Context) uuid.UUID {
 
 func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder) error {
 	const sqlQuery = `
-		INSERT INTO user_order (id, user_id, order_id, status, accrual) VALUES %s
+		INSERT INTO user_order (id, user_id, order_id, status, accrual, created_at, updated_at) VALUES %s
 		ON CONFLICT (id)
 		DO UPDATE SET 
 			status = EXCLUDED.status,
 			accrual = EXCLUDED.accrual,
-		 	updated_at = NOW()
+		 	updated_at = EXCLUDED.updated_at
 	`
 
 	for chunkItems := range slices.Chunk(items, chunkSize) {
 		values := make([]string, 0, len(chunkItems))
-		args := make([]any, 0, len(chunkItems)*5)
+		args := make([]any, 0, len(chunkItems)*7)
 
 		for i, item := range chunkItems {
-			base := i * 5
-			params := fmt.Sprintf("($%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5)
+			base := i * 7
+			params := fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6, base+7)
 			values = append(values, params)
-			args = append(args, item.ID, item.UserID, item.OrderID, item.Status, item.Accrual)
+			args = append(args, item.ID, item.UserID, item.OrderID, item.Status, item.Accrual, item.CreatedAt, item.UpdatedAt)
 		}
 
 		query := fmt.Sprintf(sqlQuery, strings.Join(values, ","))

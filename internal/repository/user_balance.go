@@ -33,7 +33,7 @@ type userBalanceRepository struct {
 
 func (r *userBalanceRepository) Store(ctx context.Context, item model.UserBalance) error {
 	const sqlQuery = `
-		INSERT INTO "user_balance" (user_id, withdrawn_sum, withdrawn_sum) VALUES ($1, $2, $3)
+		INSERT INTO "user_balance" (user_id, balance, withdrawn_sum) VALUES ($1, $2, $3)
 		ON CONFLICT (user_id)
 		DO UPDATE SET 
 			balance = EXCLUDED.balance,
@@ -51,7 +51,7 @@ func (r *userBalanceRepository) Store(ctx context.Context, item model.UserBalanc
 
 func (r *userBalanceRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error) {
 	const sqlQuery = `
-		SELECT user_id, withdrawn_sum, withdrawn_sum 
+		SELECT user_id, balance, withdrawn_sum 
 		FROM "user_balance"
 		WHERE user_id = $1 
 		LIMIT 1
@@ -79,8 +79,8 @@ func (r *userBalanceRepository) GetByUserID(ctx context.Context, userID uuid.UUI
 	if userBalancePtr == nil {
 		return model.UserBalance{
 			UserID:       userID,
-			Balance:      decimal.New(0, 0),
-			WithdrawnSum: decimal.New(0, 0),
+			Balance:      decimal.Zero,
+			WithdrawnSum: decimal.Zero,
 		}, nil
 	}
 

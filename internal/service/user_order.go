@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/liebeSonne/gophermart/internal/model"
@@ -31,7 +32,7 @@ type userOrderService struct {
 func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInput) (model.UserOrder, error) {
 	err := input.Validate()
 	if err != nil {
-		return model.UserOrder{}, err
+		return model.UserOrder{}, fmt.Errorf("invalid upload user order input: %w", err)
 	}
 
 	var newUserOrder model.UserOrder

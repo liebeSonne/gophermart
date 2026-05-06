@@ -7,6 +7,7 @@ import (
 )
 
 var ErrInvalidOrderID = errors.New("invalid order ID")
+var ErrInvalidUserID = errors.New("invalid user id")
 
 type UploadUserOrderInput struct {
 	OrderID string
@@ -14,7 +15,20 @@ type UploadUserOrderInput struct {
 }
 
 func (i *UploadUserOrderInput) Validate() error {
-	if i.OrderID == "" {
+	if i.UserID == uuid.Nil {
+		return ErrInvalidUserID
+	}
+
+	err := validateOrderID(i.OrderID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func validateOrderID(orderID string) error {
+	if orderID == "" {
 		return ErrInvalidOrderID
 	}
 	// TODO: добавить проверку валидности формата orderID по алгоритму Луна
