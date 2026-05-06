@@ -48,7 +48,7 @@ func (a *accrualAdapter) GetOrders(ctx context.Context, orderID string) (OrderDa
 		retryAfter := resp.HTTPResponse.Header.Get("Retry-After")
 		if retryAfter != "" {
 			seconds, err := strconv.Atoi(retryAfter)
-			if err != nil {
+			if err == nil {
 				retryAfterDuration := time.Duration(seconds) * time.Second
 				return OrderData{}, NewErrTooManyRetriesRetryAfter(ErrTooManyRetries, retryAfterDuration)
 			}

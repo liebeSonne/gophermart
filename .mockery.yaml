@@ -27,3 +27,6 @@ packages:
   github.com/liebeSonne/gophermart/internal/handler/cookie:
     interfaces:
       Service: { }
+  github.com/liebeSonne/gophermart/internal/adapter:
+    interfaces:
+      AccrualClientWithResponsesInterface: {}
