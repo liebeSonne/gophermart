@@ -18,10 +18,12 @@ generate:
 .PHONY: generate-api
 generate-api:
 	go tool oapi-codegen -config ./api/server/config.yaml ./api/server/public.openapi.yaml
+	go tool oapi-codegen -config ./api/client/config.yaml ./api/client/accrual.openapi.yaml
 
 .PHONY: clean-api
 clean-api:
 	rm -f api/server/public.openapi.gen.go
+	rm -f api/client/accrual.openapi.gen.go
 
 .PHONY: tests
 tests:

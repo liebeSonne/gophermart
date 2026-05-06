@@ -25,27 +25,27 @@ paths:
         '204':
           description: заказ не зарегистрирован в системе расчета
         '429':
-          description: превышено количество запросов к сервису
           $ref: '#/components/responses/TooManyRequests'
         '500':
           description: внутренняя ошибка сервера
 components:
   responses:
     TooManyRequests:
+      description: превышено количество запросов к сервису
       headers:
         Retry-After:
           description: количество секунд, которое нужно подождать перед повторным запросом
           schema:
             type: integer
             example: "60"
-        content:
-          text/plain:
-            schema:
-              type: string
-              example: "No more than 100 requests per minute allowed"
+      content:
+        text/plain:
+          schema:
+            type: string
+            example: "No more than 100 requests per minute allowed"
   schemas:
     GetOrdersResponse:
-      type: objet
+      type: object
       required:
         - order
         - status
