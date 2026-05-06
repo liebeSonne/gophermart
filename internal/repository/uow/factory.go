@@ -35,7 +35,9 @@ func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, lockNames
 	defer func() {
 		rollbackErr := tx.Rollback(ctx)
 		if rollbackErr != nil {
-			err = errors.Join(err, fmt.Errorf("error on rollback transaction: %w", rollbackErr))
+			if !errors.Is(rollbackErr, pgx.ErrTxClosed) {
+				err = errors.Join(err, fmt.Errorf("error on rollback transaction: %w", rollbackErr))
+			}
 		}
 	}()
 
