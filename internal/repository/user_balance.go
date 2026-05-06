@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/shopspring/decimal"
 
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/repository/database"
@@ -15,6 +16,7 @@ import (
 type UserBalanceRepository interface {
 	Store(ctx context.Context, item model.UserBalance) error
 	FindByUserID(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) (model.UserBalance, error)
 }
 
 func NewUserBalanceRepository(
@@ -66,4 +68,21 @@ func (r *userBalanceRepository) FindByUserID(ctx context.Context, userID uuid.UU
 	}
 
 	return &user, nil
+}
+
+func (r *userBalanceRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (model.UserBalance, error) {
+	userBalancePtr, err := r.FindByUserID(ctx, userID)
+	if err != nil {
+		return model.UserBalance{}, err
+	}
+
+	if userBalancePtr == nil {
+		return model.UserBalance{
+			UserID:       userID,
+			Balance:      decimal.New(0, 0),
+			WithdrawnSum: decimal.New(0, 0),
+		}, nil
+	}
+
+	return *userBalancePtr, nil
 }

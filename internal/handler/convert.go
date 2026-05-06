@@ -2,6 +2,9 @@ package handler
 
 import (
 	"errors"
+	"fmt"
+
+	"github.com/shopspring/decimal"
 
 	"github.com/liebeSonne/gophermart/api/server"
 	"github.com/liebeSonne/gophermart/internal/model"
@@ -22,6 +25,14 @@ func convertUserOrderStatusToAPI(status model.OrderStatus) (server.UserOrderData
 	return result, nil
 }
 
+func convertDecimalToFloat32(amount decimal.Decimal) (float32, error) {
+	accrualFloat64, extract := amount.Float64()
+	if !extract {
+		return 0, errors.New("error on extract accrual value")
+	}
+	return float32(accrualFloat64), nil
+}
+
 func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
 	status, err := convertUserOrderStatusToAPI(item.Status)
 	if err != nil {
@@ -29,12 +40,11 @@ func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
 	}
 	var accrualPtr *float32
 	if item.Accrual != nil {
-		accrualFloat64, extract := item.Accrual.Float64()
-		if !extract {
-			return server.UserOrderData{}, errors.New("error on extract accrual value")
+		accrual, err := convertDecimalToFloat32(*item.Accrual)
+		if err != nil {
+			return server.UserOrderData{}, fmt.Errorf("error on converting accrual value: %w", err)
 		}
-		accrualFloat32 := float32(accrualFloat64)
-		accrualPtr = &accrualFloat32
+		accrualPtr = &accrual
 	}
 
 	return server.UserOrderData{
@@ -55,4 +65,20 @@ func convertUserOrdersToAPI(items []model.UserOrder) ([]server.UserOrderData, er
 		itemsData = append(itemsData, itemData)
 	}
 	return itemsData, nil
+}
+
+func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceResponse, error) {
+	balance, err := convertDecimalToFloat32(item.Balance)
+	if err != nil {
+		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting balance value: %w", err)
+	}
+	withdrawnSum, err := convertDecimalToFloat32(item.WithdrawnSum)
+	if err != nil {
+		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting withdrawn sum value: %w", err)
+	}
+
+	return server.GetUserBalanceResponse{
+		Current:   balance,
+		Withdrawn: withdrawnSum,
+	}, nil
 }

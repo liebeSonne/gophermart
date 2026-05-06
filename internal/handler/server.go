@@ -20,27 +20,30 @@ func NewServer(
 	userService service.UserService,
 	userOrderService service.UserOrderService,
 	userOrderProvider provider.UserOrderProvider,
+	userBalanceProvider provider.UserBalanceProvider,
 	tokenService auth.TokenService,
 	cookieService cookie.Service,
 	logger *logrus.Logger,
 ) server.ServerInterface {
 	return &Server{
-		userService:       userService,
-		userOrderService:  userOrderService,
-		userOrderProvider: userOrderProvider,
-		tokenService:      tokenService,
-		cookieService:     cookieService,
-		logger:            logger,
+		userService:         userService,
+		userOrderService:    userOrderService,
+		userOrderProvider:   userOrderProvider,
+		userBalanceProvider: userBalanceProvider,
+		tokenService:        tokenService,
+		cookieService:       cookieService,
+		logger:              logger,
 	}
 }
 
 type Server struct {
-	userService       service.UserService
-	userOrderService  service.UserOrderService
-	userOrderProvider provider.UserOrderProvider
-	tokenService      auth.TokenService
-	cookieService     cookie.Service
-	logger            *logrus.Logger
+	userService         service.UserService
+	userOrderService    service.UserOrderService
+	userOrderProvider   provider.UserOrderProvider
+	userBalanceProvider provider.UserBalanceProvider
+	tokenService        auth.TokenService
+	cookieService       cookie.Service
+	logger              *logrus.Logger
 }
 
 //nolint:dupl
@@ -197,7 +200,42 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	enc := json.NewEncoder(w)
+	err = enc.Encode(resp)
+
+	if err != nil {
+		s.logger.WithError(err).Errorf("error encoding user (userID: %s) balance", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	userBalance, err := s.userBalanceProvider.GetByUserID(ctx, userID)
+	if err != nil {
+		s.logger.WithError(err).Errorf("error getting user (userID: %s) balance", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	resp, err := convertUserBalanceToAPI(userBalance)
+	if err != nil {
+		s.logger.WithError(err).Errorf("error converting user (userID: %s) balance", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 
 	enc := json.NewEncoder(w)
 	err = enc.Encode(resp)
@@ -207,13 +245,8 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-}
 
-func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
-	// TODO implement me
-	_ = w
-	_ = r
-	panic("implement me")
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
