@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"hash/fnv"
-	"math"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -88,10 +87,6 @@ func (f *unitOfWorkFactory) getLockID(name string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	sum := h.Sum64()
-	if sum > math.MaxInt64 {
-		return 0, fmt.Errorf("value too large for int64: %v", sum)
-	}
-
-	return int64(sum), nil
+	//nolint:gosec
+	return int64(h.Sum64()), nil
 }
