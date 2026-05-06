@@ -22,6 +22,7 @@ func initRouter(
 		dependency.UserOrderProvider,
 		dependency.UserBalanceProvider,
 		dependency.UserBalanceService,
+		dependency.UserBalanceWithDrawnProvider,
 		dependency.TokenService,
 		dependency.CookieService,
 		logger,

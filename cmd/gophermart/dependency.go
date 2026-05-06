@@ -11,13 +11,14 @@ import (
 )
 
 type dependencyContainer struct {
-	UserService         service.UserService
-	UserOrderService    service.UserOrderService
-	UserOrderProvider   provider.UserOrderProvider
-	UserBalanceProvider provider.UserBalanceProvider
-	UserBalanceService  service.UserBalanceService
-	TokenService        auth.TokenService
-	CookieService       cookie.Service
+	UserService                  service.UserService
+	UserOrderService             service.UserOrderService
+	UserOrderProvider            provider.UserOrderProvider
+	UserBalanceProvider          provider.UserBalanceProvider
+	UserBalanceService           service.UserBalanceService
+	UserBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider
+	TokenService                 auth.TokenService
+	CookieService                cookie.Service
 }
 
 func newDependencyContainer(
@@ -29,6 +30,7 @@ func newDependencyContainer(
 	userProvider := repository.NewUserRepository(connection.DBClient.Pool())
 	userOrderProvider := repository.NewUserOrderRepository(connection.DBClient.Pool())
 	userBalanceProvider := repository.NewUserBalanceRepository(connection.DBClient.Pool())
+	userBalanceWithDrawnProvider := repository.NewUserBalanceWithdrawnRepository(connection.DBClient.Pool())
 
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))
 	userService := service.NewUserService(uowFactory, passwordService, userProvider)
@@ -39,12 +41,13 @@ func newDependencyContainer(
 	cookieService := cookie.NewService(cfg.AuthCookieTokenKey)
 
 	return &dependencyContainer{
-		UserService:         userService,
-		UserOrderService:    userOrderService,
-		UserOrderProvider:   userOrderProvider,
-		UserBalanceProvider: userBalanceProvider,
-		UserBalanceService:  userBalanceService,
-		TokenService:        tokenService,
-		CookieService:       cookieService,
+		UserService:                  userService,
+		UserOrderService:             userOrderService,
+		UserOrderProvider:            userOrderProvider,
+		UserBalanceProvider:          userBalanceProvider,
+		UserBalanceService:           userBalanceService,
+		UserBalanceWithDrawnProvider: userBalanceWithDrawnProvider,
+		TokenService:                 tokenService,
+		CookieService:                cookieService,
 	}, nil
 }

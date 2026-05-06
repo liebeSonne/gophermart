@@ -82,3 +82,29 @@ func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceRespo
 		Withdrawn: withdrawnSum,
 	}, nil
 }
+
+func convertUserBalanceWithdrawnToAPI(item model.UserBalanceWithdrawn) (server.WithdrawalData, error) {
+	amount, err := convertDecimalToFloat32(item.Amount)
+	if err != nil {
+		return server.WithdrawalData{}, fmt.Errorf("error on converting amount value: %w", err)
+	}
+
+	return server.WithdrawalData{
+		Order:       item.OrderID,
+		Sum:         amount,
+		ProcessedAt: item.CreatedAt,
+	}, nil
+}
+
+func convertUserBalanceWithdrawnItemsToAPI(items []model.UserBalanceWithdrawn) ([]server.WithdrawalData, error) {
+	itemsData := make([]server.WithdrawalData, 0, len(items))
+	for _, item := range items {
+		itemData, err := convertUserBalanceWithdrawnToAPI(item)
+		if err != nil {
+			return server.GetUserWithdrawalsResponse{}, err
+		}
+		itemsData = append(itemsData, itemData)
+	}
+
+	return itemsData, nil
+}

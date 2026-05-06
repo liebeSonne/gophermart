@@ -15,7 +15,7 @@ import (
 type UserBalanceWithdrawnRepository interface {
 	NextID(ctx context.Context) uuid.UUID
 	Store(ctx context.Context, item model.UserBalanceWithdrawn) error
-	FindByUserID(ctx context.Context, userID string) ([]model.UserBalanceWithdrawn, error)
+	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserBalanceWithdrawn, error)
 }
 
 func NewUserBalanceWithdrawnRepository(
@@ -47,7 +47,7 @@ func (r *userBalanceWithdrawnRepository) Store(ctx context.Context, item model.U
 	return nil
 }
 
-func (r *userBalanceWithdrawnRepository) FindByUserID(ctx context.Context, userID string) ([]model.UserBalanceWithdrawn, error) {
+func (r *userBalanceWithdrawnRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserBalanceWithdrawn, error) {
 	const sqlQuery = `
 		SELECT id, user_id, order_id, amount, created_at
 		FROM user_balance_withdrawn 

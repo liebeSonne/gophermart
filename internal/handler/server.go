@@ -23,31 +23,34 @@ func NewServer(
 	userOrderProvider provider.UserOrderProvider,
 	userBalanceProvider provider.UserBalanceProvider,
 	userBalanceService service.UserBalanceService,
+	userBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider,
 	tokenService auth.TokenService,
 	cookieService cookie.Service,
 	logger *logrus.Logger,
 ) server.ServerInterface {
 	return &Server{
-		userService:         userService,
-		userOrderService:    userOrderService,
-		userOrderProvider:   userOrderProvider,
-		userBalanceProvider: userBalanceProvider,
-		userBalanceService:  userBalanceService,
-		tokenService:        tokenService,
-		cookieService:       cookieService,
-		logger:              logger,
+		userService:                  userService,
+		userOrderService:             userOrderService,
+		userOrderProvider:            userOrderProvider,
+		userBalanceProvider:          userBalanceProvider,
+		userBalanceService:           userBalanceService,
+		userBalanceWithDrawnProvider: userBalanceWithDrawnProvider,
+		tokenService:                 tokenService,
+		cookieService:                cookieService,
+		logger:                       logger,
 	}
 }
 
 type Server struct {
-	userService         service.UserService
-	userOrderService    service.UserOrderService
-	userOrderProvider   provider.UserOrderProvider
-	userBalanceProvider provider.UserBalanceProvider
-	userBalanceService  service.UserBalanceService
-	tokenService        auth.TokenService
-	cookieService       cookie.Service
-	logger              *logrus.Logger
+	userService                  service.UserService
+	userOrderService             service.UserOrderService
+	userOrderProvider            provider.UserOrderProvider
+	userBalanceProvider          provider.UserBalanceProvider
+	userBalanceService           service.UserBalanceService
+	userBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider
+	tokenService                 auth.TokenService
+	cookieService                cookie.Service
+	logger                       *logrus.Logger
 }
 
 //nolint:dupl
@@ -174,6 +177,7 @@ func (s *Server) UploadUserOrders(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusAccepted)
 }
 
+//nolint:dupl
 func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
@@ -208,7 +212,7 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	err = enc.Encode(resp)
 
 	if err != nil {
-		s.logger.WithError(err).Errorf("error encoding user (userID: %s) balance", userID)
+		s.logger.WithError(err).Errorf("error encoding user (userID: %s) orders", userID)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -297,11 +301,47 @@ func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+//nolint:dupl
 func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
-	// TODO implement me
-	_ = w
-	_ = r
-	panic("implement me")
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	items, err := s.userBalanceWithDrawnProvider.FindByUserID(ctx, userID)
+	if err != nil {
+		s.logger.WithError(err).Errorf("error getting user (userID: %s) balance withdrawn", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	if len(items) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+
+	resp, err := convertUserBalanceWithdrawnItemsToAPI(items)
+	if err != nil {
+		s.logger.WithError(err).Errorf("error converting user (userID: %s) balance withdrawn items", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	enc := json.NewEncoder(w)
+	err = enc.Encode(resp)
+
+	if err != nil {
+		s.logger.WithError(err).Errorf("error encoding user (userID: %s) balance withdrawn items", userID)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) setUserAuthorization(w http.ResponseWriter, r *http.Request, user model.User) error {
