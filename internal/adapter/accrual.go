@@ -17,16 +17,11 @@ type AccrualAdapter interface {
 }
 
 func NewAccrualAdapter(
-	server string,
-) (AccrualAdapter, error) {
-	apiClient, err := client.NewClientWithResponses(server)
-	if err != nil {
-		return nil, err
-	}
-
+	apiClient client.ClientWithResponsesInterface,
+) AccrualAdapter {
 	return &accrualAdapter{
 		client: apiClient,
-	}, nil
+	}
 }
 
 type accrualAdapter struct {
