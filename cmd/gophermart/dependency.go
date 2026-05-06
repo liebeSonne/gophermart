@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/auth"
 	"github.com/liebeSonne/gophermart/internal/config"
 	"github.com/liebeSonne/gophermart/internal/handler/cookie"
@@ -19,6 +20,7 @@ type dependencyContainer struct {
 	UserBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider
 	TokenService                 auth.TokenService
 	CookieService                cookie.Service
+	AccrualAdapter               adapter.AccrualAdapter
 }
 
 func newDependencyContainer(
@@ -40,6 +42,8 @@ func newDependencyContainer(
 	tokenService := auth.NewTokenService(cfg.AuthSecretKey, cfg.AuthTokenExpires)
 	cookieService := cookie.NewService(cfg.AuthCookieTokenKey)
 
+	accrualAdapter := adapter.NewAccrualAdapter(connection.AccrualClient)
+
 	return &dependencyContainer{
 		UserService:                  userService,
 		UserOrderService:             userOrderService,
@@ -49,5 +53,6 @@ func newDependencyContainer(
 		UserBalanceWithDrawnProvider: userBalanceWithDrawnProvider,
 		TokenService:                 tokenService,
 		CookieService:                cookieService,
+		AccrualAdapter:               accrualAdapter,
 	}, nil
 }

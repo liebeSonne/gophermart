@@ -6,13 +6,15 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	apiclient "github.com/liebeSonne/gophermart/api/client"
 	"github.com/liebeSonne/gophermart/internal/config"
 	iocloser "github.com/liebeSonne/gophermart/internal/io/closer"
 	"github.com/liebeSonne/gophermart/internal/repository/database"
 )
 
 type connectionContainer struct {
-	DBClient database.Client
+	DBClient      database.Client
+	AccrualClient apiclient.ClientWithResponsesInterface
 }
 
 func newConnectionContainer(
@@ -35,7 +37,13 @@ func newConnectionContainer(
 		))
 	}
 
+	accrualAPIClient, err := apiclient.NewClientWithResponses(cfg.AccrualSystemAddress)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create accrual api client: %w", err)
+	}
+
 	return &connectionContainer{
-		DBClient: client,
+		DBClient:      client,
+		AccrualClient: accrualAPIClient,
 	}, nil
 }
