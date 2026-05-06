@@ -50,7 +50,10 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 
 	var newUser model.User
 
-	err = s.uowFactory.ExecuteWithUnitOfWork(ctx, func(provider uow.RepositoryProvider) error {
+	lockName := MakeUsersLockName()
+	lockNames := []string{lockName}
+
+	err = s.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider uow.RepositoryProvider) error {
 		userRepository := provider.UserRepository()
 
 		var userPtr *model.User

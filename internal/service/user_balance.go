@@ -34,7 +34,10 @@ func (s *userBalanceService) AddWithdrawn(ctx context.Context, input AddWithdraw
 		return fmt.Errorf("invalid add withdrawn input: %w", err)
 	}
 
-	return s.uowFactory.ExecuteWithUnitOfWork(ctx, func(provider uow.RepositoryProvider) error {
+	lockName := MakeUserBalanceLockName(input.UserID)
+	lockNames := []string{lockName}
+
+	return s.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider uow.RepositoryProvider) error {
 		balanceRepository := provider.UserBalanceRepository()
 		withdrawnRepository := provider.UserBalanceWithdrawnRepository()
 

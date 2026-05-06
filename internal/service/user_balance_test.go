@@ -117,8 +117,8 @@ func TestUserBalanceService_AddWithdrawn(t *testing.T) {
 			repositoryProvider.EXPECT().UserBalanceWithdrawnRepository().Return(userBalanceWithdrawnRepository).Maybe()
 
 			uowFactory := uow.NewMockUnitOfWorkFactory(t)
-			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything).RunAndReturn(func(_ context.Context, f func(provider uow.RepositoryProvider) error) error {
-				return f(repositoryProvider)
+			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider uow.RepositoryProvider) error) error {
+				return fn(repositoryProvider)
 			}).Maybe()
 
 			s := NewUserBalanceService(uowFactory)

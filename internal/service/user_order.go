@@ -37,7 +37,10 @@ func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInpu
 
 	var newUserOrder model.UserOrder
 
-	err = u.uowFactory.ExecuteWithUnitOfWork(ctx, func(provider uow.RepositoryProvider) error {
+	lockName := MakeUserOrderLockName(input.OrderID)
+	lockNames := []string{lockName}
+
+	err = u.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider uow.RepositoryProvider) error {
 		repo := provider.UserOrderRepository()
 
 		var userOrderPtr *model.UserOrder

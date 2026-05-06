@@ -4,13 +4,15 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"hash/fnv"
+	"math"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type UnitOfWorkFactory interface {
-	ExecuteWithUnitOfWork(ctx context.Context, f func(provider RepositoryProvider) error) error
+	ExecuteWithUnitOfWork(ctx context.Context, lockNames []string, fn func(provider RepositoryProvider) error) error
 }
 
 func NewUnitOfWorkFactory(
@@ -25,28 +27,71 @@ type unitOfWorkFactory struct {
 	pool *pgxpool.Pool
 }
 
-func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, fn func(provider RepositoryProvider) error) error {
+func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, lockNames []string, fn func(provider RepositoryProvider) error) (err error) {
 	tx, err := f.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("error on begin transaction: %w", err)
 	}
 
-	p := NewRepositoryProvider(tx)
-
-	err = fn(p)
-
-	if err != nil {
+	defer func() {
 		rollbackErr := tx.Rollback(ctx)
 		if rollbackErr != nil {
 			err = errors.Join(err, fmt.Errorf("error on rollback transaction: %w", rollbackErr))
 		}
+	}()
+
+	p := NewRepositoryProvider(tx)
+
+	for _, lockName := range lockNames {
+		err = f.setLock(ctx, tx, lockName)
+		if err != nil {
+			err = fmt.Errorf("error on set lock: %w", err)
+			return err
+		}
+	}
+
+	err = fn(p)
+	if err != nil {
 		return err
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return fmt.Errorf("error on commit transaction: %w", err)
+		err = fmt.Errorf("error on commit transaction: %w", err)
+		return err
 	}
 
 	return nil
+}
+
+func (f *unitOfWorkFactory) setLock(ctx context.Context, tx pgx.Tx, lockName string) error {
+	lockID, err := f.getLockID(lockName)
+	if err != nil {
+		return err
+	}
+
+	const sqlQuery = `
+		SELECT pg_advisory_xact_lock($1)
+	`
+
+	_, err = tx.Exec(ctx, sqlQuery, lockID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *unitOfWorkFactory) getLockID(name string) (int64, error) {
+	h := fnv.New64a()
+	_, err := h.Write([]byte(name))
+	if err != nil {
+		return 0, err
+	}
+	sum := h.Sum64()
+	if sum > math.MaxInt64 {
+		return 0, fmt.Errorf("value too large for int64: %v", sum)
+	}
+
+	return int64(sum), nil
 }
