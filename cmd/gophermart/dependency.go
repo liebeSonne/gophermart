@@ -15,6 +15,7 @@ type dependencyContainer struct {
 	UserOrderService    service.UserOrderService
 	UserOrderProvider   provider.UserOrderProvider
 	UserBalanceProvider provider.UserBalanceProvider
+	UserBalanceService  service.UserBalanceService
 	TokenService        auth.TokenService
 	CookieService       cookie.Service
 }
@@ -32,6 +33,7 @@ func newDependencyContainer(
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))
 	userService := service.NewUserService(uowFactory, passwordService, userProvider)
 	userOrderService := service.NewUserOrderService(uowFactory)
+	userBalanceService := service.NewUserBalanceService(uowFactory)
 
 	tokenService := auth.NewTokenService(cfg.AuthSecretKey, cfg.AuthTokenExpires)
 	cookieService := cookie.NewService(cfg.AuthCookieTokenKey)
@@ -41,6 +43,7 @@ func newDependencyContainer(
 		UserOrderService:    userOrderService,
 		UserOrderProvider:   userOrderProvider,
 		UserBalanceProvider: userBalanceProvider,
+		UserBalanceService:  userBalanceService,
 		TokenService:        tokenService,
 		CookieService:       cookieService,
 	}, nil

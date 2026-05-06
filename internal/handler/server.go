@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/api/server"
@@ -21,6 +22,7 @@ func NewServer(
 	userOrderService service.UserOrderService,
 	userOrderProvider provider.UserOrderProvider,
 	userBalanceProvider provider.UserBalanceProvider,
+	userBalanceService service.UserBalanceService,
 	tokenService auth.TokenService,
 	cookieService cookie.Service,
 	logger *logrus.Logger,
@@ -30,6 +32,7 @@ func NewServer(
 		userOrderService:    userOrderService,
 		userOrderProvider:   userOrderProvider,
 		userBalanceProvider: userBalanceProvider,
+		userBalanceService:  userBalanceService,
 		tokenService:        tokenService,
 		cookieService:       cookieService,
 		logger:              logger,
@@ -41,6 +44,7 @@ type Server struct {
 	userOrderService    service.UserOrderService
 	userOrderProvider   provider.UserOrderProvider
 	userBalanceProvider provider.UserBalanceProvider
+	userBalanceService  service.UserBalanceService
 	tokenService        auth.TokenService
 	cookieService       cookie.Service
 	logger              *logrus.Logger
@@ -250,10 +254,47 @@ func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
-	// TODO implement me
-	_ = w
-	_ = r
-	panic("implement me")
+	ctx := r.Context()
+
+	w.Header().Set("Content-Type", "application/json")
+
+	var withdrawnBalanceRequest server.WithdrawUserBalanceRequest
+	dec := json.NewDecoder(r.Body)
+	err := dec.Decode(&withdrawnBalanceRequest)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := auth.GetUserIDFromContext(ctx)
+	if !ok {
+		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+		return
+	}
+
+	input := service.AddWithdrawnInput{
+		UserID:  userID,
+		OrderID: withdrawnBalanceRequest.Order,
+		Amount:  decimal.NewFromFloat32(withdrawnBalanceRequest.Sum),
+	}
+
+	err = s.userBalanceService.AddWithdrawn(ctx, input)
+	if err != nil {
+		if errors.Is(err, service.ErrInvalidOrderID) {
+			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+			return
+		}
+		if errors.Is(err, service.ErrUserBalanceIsNotEnough) {
+			http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
+			return
+		}
+
+		s.logger.WithError(err).Errorf("error add withdrawn (userID: '%s', orderID: '%s', amount: '%f')", userID, input.OrderID, withdrawnBalanceRequest.Sum)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
