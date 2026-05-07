@@ -53,7 +53,7 @@ func (h *workerHandler[I, O]) runWorker(inCh <-chan I, outCh chan<- O) {
 		case value, ok := <-inCh:
 			if !ok {
 				h.logger.Debugf("'%s' worker handler worker finished on input channel closed", h.name)
-				continue
+				return
 			}
 			h.handler(value, outCh)
 		}
