@@ -75,7 +75,7 @@ func TestWorkerHandler_Handle(t *testing.T) {
 
 			wh := NewWorkerHandler[string, int](ctx, "name", handler, l)
 
-			inCh := testGenerateCh[string](ctx, tc.on.values)
+			inCh := testGenerateChWaiting[string](ctx, tc.on.values, 0)
 
 			outCh := make(chan int)
 

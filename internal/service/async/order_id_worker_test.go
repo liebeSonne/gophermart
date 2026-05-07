@@ -77,10 +77,6 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			time.AfterFunc(time.Millisecond*200, func() {
-				cancel()
-			})
-
 			accrualAdapter := adapter.NewMockAccrualAdapter(t)
 			accrualAdapter.EXPECT().GetOrders(mock.Anything, tc.on.orderID).Return(tc.when.getOrder, tc.when.getOrderErr).Once()
 

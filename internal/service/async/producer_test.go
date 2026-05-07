@@ -236,6 +236,7 @@ func TestProducer_Setup(t *testing.T) {
 		cancelCtx   bool
 		cancelSetup bool
 		waiting     time.Duration
+		waitingCh   time.Duration
 	}
 	type want struct {
 		values []string
@@ -253,6 +254,7 @@ func TestProducer_Setup(t *testing.T) {
 				true,
 				false,
 				time.Millisecond * 300,
+				time.Millisecond * 0,
 			},
 			want{[]string{}},
 		},
@@ -264,6 +266,7 @@ func TestProducer_Setup(t *testing.T) {
 				false,
 				true,
 				time.Millisecond * 300,
+				time.Millisecond * 10,
 			},
 			want{[]string{}},
 		},
@@ -275,6 +278,7 @@ func TestProducer_Setup(t *testing.T) {
 				false,
 				false,
 				time.Millisecond * 300,
+				time.Millisecond * 0,
 			},
 			want{[]string{"1", "2", "3"}},
 		},
@@ -289,7 +293,7 @@ func TestProducer_Setup(t *testing.T) {
 
 			p := NewProducer[string](ctx, "name", uint(len(tc.on.values)), l)
 
-			setupCh := testGenerateCh(ctx, tc.on.values)
+			setupCh := testGenerateChWaiting(ctx, tc.on.values, tc.on.waitingCh)
 
 			if tc.on.cancelCtx {
 				cancel()

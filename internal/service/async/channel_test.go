@@ -47,7 +47,7 @@ func TestFanIn(t *testing.T) {
 
 			inputsCh := make([]<-chan string, 0, len(tc.on.inputs))
 			for _, inputs := range tc.on.inputs {
-				ch := testGenerateCh(ctx, inputs)
+				ch := testGenerateChWaiting(ctx, inputs, 0)
 				inputsCh = append(inputsCh, ch)
 			}
 
@@ -79,11 +79,12 @@ func TestFanIn(t *testing.T) {
 	}
 }
 
-func testGenerateCh[T any](ctx context.Context, items []T) <-chan T {
+func testGenerateChWaiting[T any](ctx context.Context, items []T, waiting time.Duration) <-chan T {
 	outCh := make(chan T, len(items))
 	go func() {
 		defer close(outCh)
 		for _, value := range items {
+			time.Sleep(waiting)
 			select {
 			case <-ctx.Done():
 				return
