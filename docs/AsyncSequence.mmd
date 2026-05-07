@@ -19,7 +19,7 @@ sequenceDiagram
         activate PDB
             loop Пока есть данные а базе
                 %% Выборка заказов, с лимитом на один запрос, в не завершенном статусе с execute_at меньше даты старта
-                PDB->>+DB: SELECT orderID from user_order WHERE status != PROCESSED AND execute_at <= <startTime> LIMIT <N>
+                PDB->>+DB: SELECT orderID from user_order WHERE status IN (NEW, PROCESSING) AND execute_at <= <startTime> LIMIT <N>
                 DB-->>-PDB: заказы пользователей (orderID)
                 PDB-->>JobsCh: Отправка задачи по заказу в канал (ch <- job)
             end
