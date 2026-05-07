@@ -234,6 +234,7 @@ func TestProducer_Setup(t *testing.T) {
 		channelSize uint
 		values      []string
 		cancelCtx   bool
+		cancelSetup bool
 		waiting     time.Duration
 	}
 	type want struct {
@@ -250,6 +251,18 @@ func TestProducer_Setup(t *testing.T) {
 				10,
 				[]string{"1", "2", "3"},
 				true,
+				false,
+				time.Millisecond * 300,
+			},
+			want{[]string{}},
+		},
+		{
+			"cancel setup",
+			on{
+				10,
+				[]string{"1", "2", "3"},
+				false,
+				true,
 				time.Millisecond * 300,
 			},
 			want{[]string{}},
@@ -259,6 +272,7 @@ func TestProducer_Setup(t *testing.T) {
 			on{
 				10,
 				[]string{"1", "2", "3"},
+				false,
 				false,
 				time.Millisecond * 300,
 			},
@@ -281,7 +295,9 @@ func TestProducer_Setup(t *testing.T) {
 				cancel()
 			}
 			cancelSetup := p.Setup(setupCh)
-			_ = cancelSetup
+			if tc.on.cancelSetup {
+				cancelSetup()
+			}
 
 			ch := p.Produce()
 
@@ -305,7 +321,7 @@ func TestProducer_Setup(t *testing.T) {
 
 			require.Len(t, values, len(tc.want.values))
 			sort.Strings(values)
-			sort.Strings(tc.on.values)
+			sort.Strings(tc.want.values)
 			assert.Equal(t, tc.want.values, values)
 		})
 	}
