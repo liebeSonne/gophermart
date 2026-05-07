@@ -19,6 +19,7 @@ type UserOrderRepository interface {
 	Store(ctx context.Context, items []model.UserOrder) error
 	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error)
 	FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error)
+	FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error)
 }
 
 func NewUserOrderRepository(
@@ -125,4 +126,44 @@ func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string)
 	item.Status = model.OrderStatus(orderStatus)
 
 	return &item, nil
+}
+
+func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error) {
+	const sqlQuery = `
+		SELECT order_id
+		FROM user_order 
+		WHERE 
+		    execute_at <= $1
+			AND status = ANY($2) 
+		ORDER BY execute_at
+		LIMIT $3
+	`
+
+	intStatuses := make([]int, 0, len(spec.Statuses))
+	for _, status := range spec.Statuses {
+		intStatuses = append(intStatuses, int(status))
+	}
+
+	rows, err := r.client.Query(ctx, sqlQuery, spec.BeforeExecuteAt, intStatuses, spec.Limit)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error on query: %w", err)
+	}
+
+	orderIDs := make([]string, 0)
+	for rows.Next() {
+		var orderID string
+		err = rows.Scan(&orderID)
+		if err != nil {
+			return nil, fmt.Errorf("error on scan row: %w", err)
+		}
+		orderIDs = append(orderIDs, orderID)
+	}
+	if rows.Err() != nil {
+		return nil, fmt.Errorf("error on scan rows: %w", rows.Err())
+	}
+
+	return orderIDs, nil
 }

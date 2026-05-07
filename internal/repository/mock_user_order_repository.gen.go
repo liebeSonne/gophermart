@@ -175,6 +175,74 @@ func (_c *MockUserOrderRepository_FindByUserID_Call) RunAndReturn(run func(ctx c
 	return _c
 }
 
+// FindOrderIDs provides a mock function for the type MockUserOrderRepository
+func (_mock *MockUserOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error) {
+	ret := _mock.Called(ctx, spec)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindOrderIDs")
+	}
+
+	var r0 []string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.FindUserOrderSpecification) ([]string, error)); ok {
+		return returnFunc(ctx, spec)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.FindUserOrderSpecification) []string); ok {
+		r0 = returnFunc(ctx, spec)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]string)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, model.FindUserOrderSpecification) error); ok {
+		r1 = returnFunc(ctx, spec)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUserOrderRepository_FindOrderIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindOrderIDs'
+type MockUserOrderRepository_FindOrderIDs_Call struct {
+	*mock.Call
+}
+
+// FindOrderIDs is a helper method to define mock.On call
+//   - ctx context.Context
+//   - spec model.FindUserOrderSpecification
+func (_e *MockUserOrderRepository_Expecter) FindOrderIDs(ctx interface{}, spec interface{}) *MockUserOrderRepository_FindOrderIDs_Call {
+	return &MockUserOrderRepository_FindOrderIDs_Call{Call: _e.mock.On("FindOrderIDs", ctx, spec)}
+}
+
+func (_c *MockUserOrderRepository_FindOrderIDs_Call) Run(run func(ctx context.Context, spec model.FindUserOrderSpecification)) *MockUserOrderRepository_FindOrderIDs_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 model.FindUserOrderSpecification
+		if args[1] != nil {
+			arg1 = args[1].(model.FindUserOrderSpecification)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUserOrderRepository_FindOrderIDs_Call) Return(strings []string, err error) *MockUserOrderRepository_FindOrderIDs_Call {
+	_c.Call.Return(strings, err)
+	return _c
+}
+
+func (_c *MockUserOrderRepository_FindOrderIDs_Call) RunAndReturn(run func(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error)) *MockUserOrderRepository_FindOrderIDs_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // NextID provides a mock function for the type MockUserOrderRepository
 func (_mock *MockUserOrderRepository) NextID(ctx context.Context) uuid.UUID {
 	ret := _mock.Called(ctx)
