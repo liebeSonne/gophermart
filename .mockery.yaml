@@ -17,6 +17,7 @@ packages:
   github.com/liebeSonne/gophermart/internal/provider:
     interfaces:
       UserProvider: { }
+      UserOrderProvider: { }
   github.com/liebeSonne/gophermart/internal/service:
     interfaces:
       UserService: { }

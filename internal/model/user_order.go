@@ -29,5 +29,5 @@ type UserOrder struct {
 type FindUserOrderSpecification struct {
 	Statuses        []OrderStatus
 	BeforeExecuteAt time.Time
-	Limit           *int
+	Limit           *uint
 }
