@@ -46,7 +46,7 @@ func TestProducer_Add(t *testing.T) {
 
 			l, _ := test.NewNullLogger()
 
-			p := NewProducer(ctx, "name", tc.on.channelSize, l)
+			p := NewProducer[string](ctx, "name", tc.on.channelSize, l)
 
 			ch := p.Produce()
 
@@ -185,7 +185,7 @@ func TestProducer_Schedule(t *testing.T) {
 
 			l, _ := test.NewNullLogger()
 
-			p := NewProducer(ctx, "name", tc.on.channelSize, l)
+			p := NewProducer[string](ctx, "name", tc.on.channelSize, l)
 			ch := p.Produce()
 
 			for _, schedule := range tc.on.addBeforeCtxDone {
@@ -287,7 +287,7 @@ func TestProducer_Setup(t *testing.T) {
 
 			l, _ := test.NewNullLogger()
 
-			p := NewProducer(ctx, "name", uint(len(tc.on.values)), l)
+			p := NewProducer[string](ctx, "name", uint(len(tc.on.values)), l)
 
 			setupCh := testGenerateCh(ctx, tc.on.values)
 

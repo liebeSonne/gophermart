@@ -10,23 +10,23 @@ import (
 
 type CancelFunc func() bool
 
-type Producer interface {
-	Produce() <-chan string
-	Add(value string)
-	Schedule(value string, delay time.Duration) CancelFunc
-	Setup(inputCh <-chan string) CancelFunc
+type Producer[T any] interface {
+	Produce() <-chan T
+	Add(value T)
+	Schedule(value T, delay time.Duration) CancelFunc
+	Setup(inputCh <-chan T) CancelFunc
 }
 
-func NewProducer(
+func NewProducer[T any](
 	ctx context.Context,
 	name string,
 	channelSize uint,
 	logger *logrus.Logger,
-) Producer {
-	p := &producer{
+) Producer[T] {
+	p := &producer[T]{
 		ctx:    ctx,
 		name:   name,
-		ch:     make(chan string, channelSize),
+		ch:     make(chan T, channelSize),
 		logger: logger,
 	}
 
@@ -51,20 +51,20 @@ func NewProducer(
 	return p
 }
 
-type producer struct {
+type producer[T any] struct {
 	ctx    context.Context
 	name   string
 	logger *logrus.Logger
-	ch     chan string
+	ch     chan T
 	closed bool
 	mu     sync.RWMutex
 }
 
-func (p *producer) Produce() <-chan string {
+func (p *producer[T]) Produce() <-chan T {
 	return p.ch
 }
 
-func (p *producer) Add(value string) {
+func (p *producer[T]) Add(value T) {
 	p.mu.RLock()
 	isClosed := p.closed
 	ch := p.ch
@@ -76,15 +76,15 @@ func (p *producer) Add(value string) {
 
 	select {
 	case ch <- value:
-		p.logger.Debugf("'%s' producer add value (%s)", p.name, value)
+		p.logger.Debugf("'%s' producer add value (%v)", p.name, value)
 	case <-p.ctx.Done():
 		p.logger.Debugf("'%s' producer context closed (%v) on add value (%v)", p.name, p.ctx.Err(), value)
 		return
 	}
 }
 
-func (p *producer) Schedule(value string, delay time.Duration) CancelFunc {
-	p.logger.Debugf("'%s' producer run schedule add value (%s) delay (%v)", p.name, value, delay)
+func (p *producer[T]) Schedule(value T, delay time.Duration) CancelFunc {
+	p.logger.Debugf("'%s' producer run schedule add value (%v) delay (%v)", p.name, value, delay)
 
 	timer := time.AfterFunc(delay, func() {
 		select {
@@ -101,7 +101,7 @@ func (p *producer) Schedule(value string, delay time.Duration) CancelFunc {
 	}
 }
 
-func (p *producer) Setup(inputCh <-chan string) CancelFunc {
+func (p *producer[T]) Setup(inputCh <-chan T) CancelFunc {
 	startTime := time.Now()
 
 	p.logger.Infof("'%s' producer setup started at %v", p.name, startTime)
