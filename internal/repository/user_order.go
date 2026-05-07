@@ -136,7 +136,7 @@ func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindU
 		    execute_at <= $1
 			AND status = ANY($2) 
 		ORDER BY execute_at
-		LIMIT $3
+		LIMIT $3 OFFSET $4
 	`
 
 	intStatuses := make([]int, 0, len(spec.Statuses))
@@ -144,7 +144,7 @@ func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindU
 		intStatuses = append(intStatuses, int(status))
 	}
 
-	rows, err := r.client.Query(ctx, sqlQuery, spec.BeforeExecuteAt, intStatuses, spec.Limit)
+	rows, err := r.client.Query(ctx, sqlQuery, spec.BeforeExecuteAt, intStatuses, spec.Limit, spec.Offset)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
