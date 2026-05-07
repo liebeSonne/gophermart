@@ -13,7 +13,7 @@ import (
 	"github.com/liebeSonne/gophermart/internal/provider"
 )
 
-func TestDbOrderIDsProducer_Produce(t *testing.T) {
+func TestOrderIDsProducer_Produce(t *testing.T) {
 	type when struct {
 		findOrderIDs    [][]string
 		findOrderIDsErr error
@@ -83,6 +83,9 @@ func TestDbOrderIDsProducer_Produce(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+
 			userOrderProvider := provider.NewMockUserOrderProvider(t)
 			selectIndex := 0
 			userOrderProvider.EXPECT().FindOrderIDs(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ model.FindUserOrderSpecification) ([]string, error) {
@@ -95,14 +98,22 @@ func TestDbOrderIDsProducer_Produce(t *testing.T) {
 			}).Maybe()
 
 			l, _ := test.NewNullLogger()
-			limit := uint(DefaultSelectOrderIDsLimit)
+			limit := uint(100)
+			limitRetriesOnError := uint(0)
+			waitingOnError := time.Millisecond * 10
 
-			p := NewDBOrderIDsProducer(userOrderProvider, l, &limit)
+			p := NewOrderIDsProducer(
+				ctx,
+				"name",
+				time.Now(),
+				&limit,
+				limitRetriesOnError,
+				waitingOnError,
+				userOrderProvider,
+				l,
+			)
 
-			ctx, cancel := context.WithCancel(t.Context())
-			defer cancel()
-
-			ch := p.Produce(ctx, tc.on.channelSize)
+			ch := p.Produce(tc.on.channelSize)
 
 			if tc.on.cancelCtx {
 				cancel()

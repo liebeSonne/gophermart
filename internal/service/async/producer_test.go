@@ -2,11 +2,13 @@ package async
 
 import (
 	"context"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestProducer_Add(t *testing.T) {
@@ -15,6 +17,7 @@ func TestProducer_Add(t *testing.T) {
 		addValuesBeforeCtxDone []string
 		cancelCtx              bool
 		addValuesAfterCtxDone  []string
+		waiting                time.Duration
 	}
 	type want struct {
 		values []string
@@ -26,12 +29,12 @@ func TestProducer_Add(t *testing.T) {
 	}{
 		{
 			"ctx Done",
-			on{10, []string{"1", "2", "3"}, true, []string{"4", "5", "6"}},
+			on{10, []string{"1", "2", "3"}, true, []string{"4", "5", "6"}, time.Millisecond * 200},
 			want{[]string{"1", "2", "3"}},
 		},
 		{
 			"ctx not Done",
-			on{10, []string{"1", "2", "3"}, false, []string{"4", "5", "6"}},
+			on{10, []string{"1", "2", "3"}, false, []string{"4", "5", "6"}, time.Millisecond * 200},
 			want{[]string{"1", "2", "3", "4", "5", "6"}},
 		},
 	}
@@ -53,7 +56,7 @@ func TestProducer_Add(t *testing.T) {
 
 			if tc.on.cancelCtx {
 				cancel()
-				time.Sleep(time.Millisecond * 100)
+				time.Sleep(time.Millisecond * 10)
 			}
 
 			for _, value := range tc.on.addValuesAfterCtxDone {
@@ -61,7 +64,7 @@ func TestProducer_Add(t *testing.T) {
 			}
 
 			values := make([]string, 0)
-			timeout := time.After(2 * time.Second)
+			timeout := time.After(tc.on.waiting)
 
 		loop:
 			for {
@@ -179,6 +182,7 @@ func TestProducer_Schedule(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
+
 			l, _ := test.NewNullLogger()
 
 			p := NewProducer(ctx, "name", tc.on.channelSize, l)
@@ -220,6 +224,88 @@ func TestProducer_Schedule(t *testing.T) {
 				}
 			}
 
+			assert.Equal(t, tc.want.values, values)
+		})
+	}
+}
+
+func TestProducer_Setup(t *testing.T) {
+	type on struct {
+		channelSize uint
+		values      []string
+		cancelCtx   bool
+		waiting     time.Duration
+	}
+	type want struct {
+		values []string
+	}
+	testCases := []struct {
+		name string
+		on   on
+		want want
+	}{
+		{
+			"ctx Done",
+			on{
+				10,
+				[]string{"1", "2", "3"},
+				true,
+				time.Millisecond * 300,
+			},
+			want{[]string{}},
+		},
+		{
+			"ctx not Done",
+			on{
+				10,
+				[]string{"1", "2", "3"},
+				false,
+				time.Millisecond * 300,
+			},
+			want{[]string{"1", "2", "3"}},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+
+			l, _ := test.NewNullLogger()
+
+			p := NewProducer(ctx, "name", uint(len(tc.on.values)), l)
+
+			setupCh := testGenerateCh(ctx, tc.on.values)
+
+			if tc.on.cancelCtx {
+				cancel()
+			}
+			cancelSetup := p.Setup(setupCh)
+			_ = cancelSetup
+
+			ch := p.Produce()
+
+			values := make([]string, 0)
+			timeout := time.After(tc.on.waiting)
+
+		loop:
+			for {
+				select {
+				case value, ok := <-ch:
+					if !ok {
+						break loop
+					}
+					values = append(values, value)
+				case <-ctx.Done():
+					break loop
+				case <-timeout:
+					break loop
+				}
+			}
+
+			require.Len(t, values, len(tc.want.values))
+			sort.Strings(values)
+			sort.Strings(tc.on.values)
 			assert.Equal(t, tc.want.values, values)
 		})
 	}

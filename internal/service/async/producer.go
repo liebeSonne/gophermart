@@ -8,22 +8,13 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type RequestProducer interface {
-	Produce() <-chan string
-	Add(value string)
-}
-
-type RetryProducer interface {
-	Produce() <-chan string
-	Schedule(value string, delay time.Duration) *time.Timer
-}
-
 type CancelFunc func() bool
 
 type Producer interface {
 	Produce() <-chan string
 	Add(value string)
 	Schedule(value string, delay time.Duration) CancelFunc
+	Setup(inputCh <-chan string) CancelFunc
 }
 
 func NewProducer(
@@ -43,15 +34,18 @@ func NewProducer(
 	p.logger.Infof("'%s' producer started at %v", p.name, startTime)
 
 	go func() {
+		defer func() {
+			p.mu.Lock()
+			close(p.ch)
+			p.closed = true
+			p.mu.Unlock()
+		}()
+		defer func() {
+			p.logger.Infof("'%s' producer finished at %v (%v)", p.name, time.Now(), time.Since(startTime))
+		}()
+
 		<-ctx.Done()
-		p.logger.Infof("'%s' producer closed: context closed", p.name)
-
-		p.mu.Lock()
-		close(p.ch)
-		p.closed = true
-		p.mu.Unlock()
-
-		p.logger.Infof("'%s' producer finished at %v (%v)", p.name, time.Now(), time.Since(startTime))
+		p.logger.Infof("'%s' producer closed on context closed", p.name)
 	}()
 
 	return p
@@ -95,6 +89,7 @@ func (p *producer) Schedule(value string, delay time.Duration) CancelFunc {
 	timer := time.AfterFunc(delay, func() {
 		select {
 		case <-p.ctx.Done():
+			p.logger.Debugf("'%s' producer context closed (%v) on schedule value", p.name, p.ctx.Err())
 			return
 		default:
 			p.Add(value)
@@ -104,4 +99,47 @@ func (p *producer) Schedule(value string, delay time.Duration) CancelFunc {
 	return func() bool {
 		return timer.Stop()
 	}
+}
+
+func (p *producer) Setup(inputCh <-chan string) CancelFunc {
+	startTime := time.Now()
+
+	p.logger.Infof("'%s' producer setup started at %v", p.name, startTime)
+
+	doneCh := make(chan struct{})
+	var once sync.Once
+
+	cancel := func() bool {
+		stopped := false
+		once.Do(func() {
+			close(doneCh)
+			stopped = true
+		})
+		return stopped
+	}
+
+	go func() {
+		defer func() {
+			p.logger.Infof("'%s' producer setup finished at %v (%v)", p.name, startTime, time.Since(startTime))
+		}()
+
+		for {
+			select {
+			case <-p.ctx.Done():
+				p.logger.Infof("'%s' producer setup finished on context closed (%v)", p.name, p.ctx.Err())
+				return
+			case <-doneCh:
+				p.logger.Infof("'%s' producer setup finished on cancel", p.name)
+				return
+			case value, ok := <-inputCh:
+				if !ok {
+					p.logger.Infof("'%s' producer setup finished on closed input channel", p.name)
+					return
+				}
+				p.Add(value)
+			}
+		}
+	}()
+
+	return cancel
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//nolint:goconst
 func TestPasswordService_CreateHash(t *testing.T) {
 	password1 := "password 1"
 	password2 := "password 2"
