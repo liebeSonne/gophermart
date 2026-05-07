@@ -297,6 +297,7 @@ func TestProducer_Setup(t *testing.T) {
 			cancelSetup := p.Setup(setupCh)
 			if tc.on.cancelSetup {
 				cancelSetup()
+				time.Sleep(time.Millisecond * 10)
 			}
 
 			ch := p.Produce()

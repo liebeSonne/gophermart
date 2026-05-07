@@ -52,7 +52,7 @@
       - [x] DB producer
       - [x] Request producer
       - [x] Retry producer
-      - [ ] Worker handler
+      - [x] Worker handler
       - [ ] Result handler
       - [ ] Вызов асинхронной обработки
 - [ ] Добавить документацию по сервису

@@ -31,3 +31,4 @@ packages:
   github.com/liebeSonne/gophermart/internal/adapter:
     interfaces:
       AccrualClientWithResponsesInterface: {}
+      AccrualAdapter: {}
