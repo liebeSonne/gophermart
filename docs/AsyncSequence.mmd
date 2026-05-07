@@ -18,8 +18,8 @@ sequenceDiagram
         Note over Main,PDB: Запуск обработки заказов при старте сервиса
         activate PDB
             loop Пока есть данные а базе
-                %% Выборка заказов, с лимитом на один запрос, в не завершенном статусе с executed_at меньше даты старта
-                PDB->>+DB: SELECT orderID from user_order WHERE status != PROCESSED AND executed_at <= <startTime> LIMIT <N>
+                %% Выборка заказов, с лимитом на один запрос, в не завершенном статусе с execute_at меньше даты старта
+                PDB->>+DB: SELECT orderID from user_order WHERE status != PROCESSED AND execute_at <= <startTime> LIMIT <N>
                 DB-->>-PDB: заказы пользователей (orderID)
                 PDB-->>JobsCh: Отправка задачи по заказу в канал (ch <- job)
             end
@@ -32,7 +32,7 @@ sequenceDiagram
     User->>Server: Регистрация заказа пользователя
     Note over User,Server: Обработка заказа при запросе от пользователя
     activate Server
-        Server->>+DB: Сохранение заказа (orderID, executed_at=now)
+        Server->>+DB: Сохранение заказа (orderID, execute_at=now)
         DB->>-Server: ok
         Server-->>PRequest: Отправка заказа на асинхронную обработку
         activate PRequest
@@ -59,7 +59,7 @@ sequenceDiagram
     loop Обработка канала результатов
         ResultCh->>ResultHandler: Получение данных (<-ch)
         activate ResultHandler
-            ResultHandler->>+DB: Сохранение результата в заказ (status, accrual, executed_at=now+delay, retry_count++)
+            ResultHandler->>+DB: Сохранение результата в заказ (status, accrual, execute_at=now+delay, retries++)
             DB-->>-ResultHandler: ok
             opt если ошибка или не финальный статус
                 ResultHandler->>PRetry: передача на повторную попытку
