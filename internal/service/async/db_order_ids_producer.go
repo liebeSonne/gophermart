@@ -13,7 +13,7 @@ import (
 const DefaultSelectOrderIDsLimit = 100
 
 type DBOrderIDsProducer interface {
-	Produce(ctx context.Context, size uint) chan string
+	Produce(ctx context.Context, size uint) <-chan string
 }
 
 func NewDBOrderIDsProducer(
@@ -34,7 +34,7 @@ type dbOrderIDsProducer struct {
 	selectLimit       *uint
 }
 
-func (p *dbOrderIDsProducer) Produce(ctx context.Context, size uint) chan string {
+func (p *dbOrderIDsProducer) Produce(ctx context.Context, size uint) <-chan string {
 	startTime := time.Now()
 
 	p.logger.Infof("DB producer started at %v", startTime)
