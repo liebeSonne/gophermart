@@ -1,0 +1,73 @@
+sequenceDiagram
+    actor User as User
+    participant Main as Goroutine: Main
+    participant Server as Goroutine: HTTP Server
+    participant PDB as Goroutine: DB Producer
+    participant PRequest as Goroutine: Request Producer
+    participant DB as DB
+    participant JobsCh as Channel: JobsChan
+    participant Worker as Goroutine: Worker
+    participant Accrual as Accrual system
+    participant ResultCh as Channel: ResultsChannel
+    participant ResultHandler as Goroutine: Result handler
+    participant PRetry as Goroutine: Retry Producer
+
+    loop Запуск сервиса
+        Main-->>PRetry: Запуск (go Retry Producer)
+        Main-->>PDB: Запуск (go DB Producer)
+        Note over Main,PDB: Запуск обработки заказов при старте сервиса
+        activate PDB
+            loop Пока есть данные а базе
+                %% Выборка заказов, с лимитом на один запрос, в не завершенном статусе с executed_at меньше даты старта
+                PDB->>+DB: SELECT orderID from user_order WHERE status != PROCESSED AND executed_at <= <startTime> LIMIT <N>
+                DB-->>-PDB: заказы пользователей (orderID)
+                PDB-->>JobsCh: Отправка задачи по заказу в канал (ch <- job)
+            end
+        PDB-->>Main: Завершение
+        deactivate PDB
+        Main-->>PRequest: Запуск (go Request Producer)
+        Main-->>Server: Запуск сервера
+    end
+
+    User->>Server: Регистрация заказа пользователя
+    Note over User,Server: Обработка заказа при запросе от пользователя
+    activate Server
+        Server->>+DB: Сохранение заказа (orderID, executed_at=now)
+        DB->>-Server: ok
+        Server-->>PRequest: Отправка заказа на асинхронную обработку
+        activate PRequest
+            PRequest-->>JobsCh: Отправка задачи по заказу в канал (ch <- job)
+            PRequest-->>Server: ok
+        deactivate PRequest
+        Server-->>User: ok
+    deactivate Server
+
+
+    Note over JobsCh, Worker: Начало обработки канала задач
+    loop Обработка задачи из канала
+        JobsCh->>Worker: Получение данных (<-ch)
+        activate Worker
+            Worker->>+Accrual: Запрос расчета по заказу (orderID)
+            Accrual-->>-Worker: результат (status, accrual, [retryAfter])
+            Worker-->>ResultCh: Результат (ch <- result) {orderID, status, err, retryAfter}
+            Worker-->>JobsCh: ok
+        deactivate Worker
+    end
+    Note over JobsCh, Worker: Конец обработки канала задач
+
+    Note over ResultCh, ResultHandler: Начало обработки канала результатов
+    loop Обработка канала результатов
+        ResultCh->>ResultHandler: Получение данных (<-ch)
+        activate ResultHandler
+            ResultHandler->>+DB: Сохранение результата в заказ (status, accrual, executed_at=now+delay, retry_count++)
+            DB-->>-ResultHandler: ok
+            opt если ошибка или не финальный статус
+                ResultHandler->>PRetry: передача на повторную попытку
+                activate PRetry
+                PRetry-->>JobsCh: отложенная отправка задачи в канал (ch <- job)
+                deactivate PRetry
+            end
+        ResultHandler-->>ResultCh: ok
+        deactivate ResultHandler
+    end
+    Note over ResultCh, ResultHandler: Конец обработки канала результатов

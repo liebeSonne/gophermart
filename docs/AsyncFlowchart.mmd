@@ -1,0 +1,61 @@
+flowchart TB
+
+%% База данных
+    subgraph Database
+        DB[(Database)]
+    end
+
+%% Внешние сервисы
+    subgraph External services
+        Accrual[Accrual System]
+    end
+
+%% Группа Продюсеров
+    subgraph Producers [Producers]
+        PDB((DB Producer))
+        PRequest((Request Producer))
+        PRetry((Retry Producer))
+    end
+
+%% Основной канал данных
+    JobsChan{{"Jobs<br>Channel: Buffer"}}
+
+%% Группа Потребителей
+    subgraph Consumers [Consumers]
+        C1((Worker 1))
+        C2((Worker 2))
+        CN((Worker N))
+    end
+
+%% Канал результатов
+    ResChan{{"Results<br/>Channel: Buffer"}}
+
+%% Финальный обработчик и возврат повторных попыток
+    subgraph ResultHandlers [Result Handler]
+        RH1((Result Handler 1))
+        RHN((Result Handler N))
+    end
+
+%% Связи
+    %% Выборка заказов для задач
+    PDB -.-> |select| DB
+    %% Передача задач в канал
+    PDB & PRequest --> |send| JobsChan
+    %% Передача задач из канала в обработчики
+    JobsChan --> |receive| C1 & C2 & CN
+    %% Обработка запросом в сервис
+    C1 & C2 & CN --> |request| Accrual
+    %% Передача результатов в канал
+    C1 & C2 & CN --> |send| ResChan
+    %% Передача результатов в обработчики
+    ResChan --> |receive| RH1 & RHN
+    %% Обработка результатов - сохранение в БД
+    RH1 & RHN -.-> |save| DB
+    %% Повторный запуск при необходимости
+    RH1 & RHN --> |send| PRetry
+    %% Отложенная передача в канал задач
+    PRetry -.-> |send| JobsChan
+
+%% Стилизация
+    style JobsChan fill:green,stroke:white
+    style ResChan fill:purple,stroke:white
