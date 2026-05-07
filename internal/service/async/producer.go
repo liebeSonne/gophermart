@@ -18,10 +18,12 @@ type RetryProducer interface {
 	Schedule(value string, delay time.Duration) *time.Timer
 }
 
+type CancelFunc func() bool
+
 type Producer interface {
 	Produce() <-chan string
 	Add(value string)
-	Schedule(value string, delay time.Duration) (cancel func() bool)
+	Schedule(value string, delay time.Duration) CancelFunc
 }
 
 func NewProducer(
@@ -87,7 +89,7 @@ func (p *producer) Add(value string) {
 	}
 }
 
-func (p *producer) Schedule(value string, delay time.Duration) (cancel func() bool) {
+func (p *producer) Schedule(value string, delay time.Duration) CancelFunc {
 	p.logger.Debugf("'%s' producer run schedule add value (%s) delay (%v)", p.name, value, delay)
 
 	timer := time.AfterFunc(delay, func() {
@@ -99,8 +101,7 @@ func (p *producer) Schedule(value string, delay time.Duration) (cancel func() bo
 		}
 	})
 
-	cancel = func() bool {
+	return func() bool {
 		return timer.Stop()
 	}
-	return
 }
