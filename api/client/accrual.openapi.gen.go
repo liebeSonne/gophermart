@@ -59,6 +59,42 @@ type GetOrdersResponseData struct {
 // GetOrdersResponseDataStatus статус расчёта начисления
 type GetOrdersResponseDataStatus string
 
+// OrdersGoodData defines model for OrdersGoodData.
+type OrdersGoodData struct {
+	// Description наименование товара
+	Description string `json:"description"`
+
+	// Price цена оплаченного товара
+	Price float32 `json:"price"`
+}
+
+// PostGoodsRequestData defines model for PostGoodsRequestData.
+type PostGoodsRequestData struct {
+	// Match ключ поиска (проверяется на наличие в строке наименования товара), не может быть пустым
+	Match string `json:"match"`
+
+	// Reward размер вознаграждения
+	Reward float32 `json:"reward"`
+
+	// RewardType тип вознаграждения ('%' - процент от стоимости товара; 'pt' - точное количество баллов)
+	RewardType string `json:"reward_type"`
+}
+
+// PostOrdersRequestData defines model for PostOrdersRequestData.
+type PostOrdersRequestData struct {
+	// Goods список купленных товаров
+	Goods []OrdersGoodData `json:"goods"`
+
+	// Order номер заказа
+	Order string `json:"order"`
+}
+
+// PostGoodsJSONRequestBody defines body for PostGoods for application/json ContentType.
+type PostGoodsJSONRequestBody = PostGoodsRequestData
+
+// PostOrdersJSONRequestBody defines body for PostOrders for application/json ContentType.
+type PostOrdersJSONRequestBody = PostOrdersRequestData
+
 // RequestEditorFn  is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
 
@@ -132,8 +168,66 @@ func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
 
 // The interface specification for the client above.
 type ClientInterface interface {
+	// PostGoodsWithBody request with any body
+	PostGoodsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostGoods(ctx context.Context, body PostGoodsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostOrdersWithBody request with any body
+	PostOrdersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostOrders(ctx context.Context, body PostOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetOrders request
 	GetOrders(ctx context.Context, number string, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) PostGoodsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostGoodsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostGoods(ctx context.Context, body PostGoodsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostGoodsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostOrdersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostOrdersRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostOrders(ctx context.Context, body PostOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostOrdersRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
 }
 
 func (c *Client) GetOrders(ctx context.Context, number string, reqEditors ...RequestEditorFn) (*http.Response, error) {
@@ -146,6 +240,86 @@ func (c *Client) GetOrders(ctx context.Context, number string, reqEditors ...Req
 		return nil, err
 	}
 	return c.Client.Do(req)
+}
+
+// NewPostGoodsRequest calls the generic PostGoods builder with application/json body
+func NewPostGoodsRequest(server string, body PostGoodsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostGoodsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostGoodsRequestWithBody generates requests for PostGoods with any type of body
+func NewPostGoodsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/goods")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostOrdersRequest calls the generic PostOrders builder with application/json body
+func NewPostOrdersRequest(server string, body PostOrdersJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostOrdersRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostOrdersRequestWithBody generates requests for PostOrders with any type of body
+func NewPostOrdersRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/api/orders")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
 }
 
 // NewGetOrdersRequest generates requests for GetOrders
@@ -225,8 +399,76 @@ func WithBaseURL(baseURL string) ClientOption {
 
 // ClientWithResponsesInterface is the interface specification for the client with responses above.
 type ClientWithResponsesInterface interface {
+	// PostGoodsWithBodyWithResponse request with any body
+	PostGoodsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostGoodsResponse, error)
+
+	PostGoodsWithResponse(ctx context.Context, body PostGoodsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostGoodsResponse, error)
+
+	// PostOrdersWithBodyWithResponse request with any body
+	PostOrdersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostOrdersResponse, error)
+
+	PostOrdersWithResponse(ctx context.Context, body PostOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*PostOrdersResponse, error)
+
 	// GetOrdersWithResponse request
 	GetOrdersWithResponse(ctx context.Context, number string, reqEditors ...RequestEditorFn) (*GetOrdersResponse, error)
+}
+
+type PostGoodsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostGoodsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostGoodsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostGoodsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PostOrdersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostOrdersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostOrdersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PostOrdersResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
 }
 
 type GetOrdersResponse struct {
@@ -259,6 +501,40 @@ func (r GetOrdersResponse) ContentType() string {
 	return ""
 }
 
+// PostGoodsWithBodyWithResponse request with arbitrary body returning *PostGoodsResponse
+func (c *ClientWithResponses) PostGoodsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostGoodsResponse, error) {
+	rsp, err := c.PostGoodsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostGoodsResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostGoodsWithResponse(ctx context.Context, body PostGoodsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostGoodsResponse, error) {
+	rsp, err := c.PostGoods(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostGoodsResponse(rsp)
+}
+
+// PostOrdersWithBodyWithResponse request with arbitrary body returning *PostOrdersResponse
+func (c *ClientWithResponses) PostOrdersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostOrdersResponse, error) {
+	rsp, err := c.PostOrdersWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostOrdersResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostOrdersWithResponse(ctx context.Context, body PostOrdersJSONRequestBody, reqEditors ...RequestEditorFn) (*PostOrdersResponse, error) {
+	rsp, err := c.PostOrders(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostOrdersResponse(rsp)
+}
+
 // GetOrdersWithResponse request returning *GetOrdersResponse
 func (c *ClientWithResponses) GetOrdersWithResponse(ctx context.Context, number string, reqEditors ...RequestEditorFn) (*GetOrdersResponse, error) {
 	rsp, err := c.GetOrders(ctx, number, reqEditors...)
@@ -266,6 +542,38 @@ func (c *ClientWithResponses) GetOrdersWithResponse(ctx context.Context, number 
 		return nil, err
 	}
 	return ParseGetOrdersResponse(rsp)
+}
+
+// ParsePostGoodsResponse parses an HTTP response from a PostGoodsWithResponse call
+func ParsePostGoodsResponse(rsp *http.Response) (*PostGoodsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostGoodsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostOrdersResponse parses an HTTP response from a PostOrdersWithResponse call
+func ParsePostOrdersResponse(rsp *http.Response) (*PostOrdersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostOrdersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
 }
 
 // ParseGetOrdersResponse parses an HTTP response from a GetOrdersWithResponse call
@@ -299,22 +607,30 @@ func ParseGetOrdersResponse(rsp *http.Response) (*GetOrdersResponse, error) {
 // const string: with thousands of chunks the chained `+` fold is several
 // times slower for the Go compiler than parsing a slice literal.
 var swaggerSpec = []string{
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

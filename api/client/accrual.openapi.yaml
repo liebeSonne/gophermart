@@ -28,6 +28,44 @@ paths:
           $ref: '#/components/responses/TooManyRequests'
         '500':
           description: внутренняя ошибка сервера
+  /api/orders:
+    post:
+      summary: Регистрация нового совершённого заказа
+      operationId: PostOrders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostOrdersRequestData'
+      responses:
+        '202':
+          description: заказ успешно принят в обработку
+        '400':
+          description: неверный формат запроса
+        '409':
+          description: заказ уже принят в обработку
+        '500':
+          description: внутренняя ошибка сервера
+  /api/goods:
+    post:
+      summary: Регистрация информации о вознаграждении за товар
+      operationId: PostGoods
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PostGoodsRequestData'
+      responses:
+        '200':
+          description: вознаграждение успешно зарегистрировано
+        '400':
+          description: неверный формат запроса
+        '409':
+          description: ключ поиска уже зарегистрирован
+        '500':
+          description: внутренняя ошибка сервера
 components:
   responses:
     TooManyRequests:
@@ -66,3 +104,48 @@ components:
           format: float
           example: "10.05"
           description: рассчитанные баллы к начислению, при отсутствии начисления (status не равен PROCESSED)— поле отсутствует в ответе
+    PostOrdersRequestData:
+      type: object
+      required:
+        - order
+        - goods
+      properties:
+        order:
+          type: string
+          description: номер заказа
+        goods:
+          type: array
+          description: список купленных товаров
+          items:
+            $ref: '#/components/schemas/OrdersGoodData'
+    OrdersGoodData:
+      type: object
+      required:
+        - price
+        - description
+      properties:
+        price:
+          type: number
+          format: float
+          description: цена оплаченного товара
+        description:
+          type: string
+          description: наименование товара
+    PostGoodsRequestData:
+      type: object
+      required:
+        - match
+        - reward
+        - reward_type
+      properties:
+        match:
+          type: string
+          minLength: 1
+          description: ключ поиска (проверяется на наличие в строке наименования товара), не может быть пустым
+        reward:
+          type: number
+          format: float
+          description: размер вознаграждения
+        reward_type:
+          type: string
+          description: тип вознаграждения ('%' - процент от стоимости товара; 'pt' - точное количество баллов)

@@ -6,6 +6,7 @@ package adapter
 
 import (
 	"context"
+	"io"
 
 	"github.com/liebeSonne/gophermart/api/client"
 	mock "github.com/stretchr/testify/mock"
@@ -117,6 +118,350 @@ func (_c *MockAccrualClientWithResponsesInterface_GetOrdersWithResponse_Call) Re
 }
 
 func (_c *MockAccrualClientWithResponsesInterface_GetOrdersWithResponse_Call) RunAndReturn(run func(ctx context.Context, number string, reqEditors ...client.RequestEditorFn) (*client.GetOrdersResponse, error)) *MockAccrualClientWithResponsesInterface_GetOrdersWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PostGoodsWithBodyWithResponse provides a mock function for the type MockAccrualClientWithResponsesInterface
+func (_mock *MockAccrualClientWithResponsesInterface) PostGoodsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...client.RequestEditorFn) (*client.PostGoodsResponse, error) {
+	var tmpRet mock.Arguments
+	if len(reqEditors) > 0 {
+		tmpRet = _mock.Called(ctx, contentType, body, reqEditors)
+	} else {
+		tmpRet = _mock.Called(ctx, contentType, body)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostGoodsWithBodyWithResponse")
+	}
+
+	var r0 *client.PostGoodsResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...client.RequestEditorFn) (*client.PostGoodsResponse, error)); ok {
+		return returnFunc(ctx, contentType, body, reqEditors...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...client.RequestEditorFn) *client.PostGoodsResponse); ok {
+		r0 = returnFunc(ctx, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*client.PostGoodsResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, io.Reader, ...client.RequestEditorFn) error); ok {
+		r1 = returnFunc(ctx, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PostGoodsWithBodyWithResponse'
+type MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call struct {
+	*mock.Call
+}
+
+// PostGoodsWithBodyWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...client.RequestEditorFn
+func (_e *MockAccrualClientWithResponsesInterface_Expecter) PostGoodsWithBodyWithResponse(ctx interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call {
+	return &MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call{Call: _e.mock.On("PostGoodsWithBodyWithResponse",
+		append([]interface{}{ctx, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call) Run(run func(ctx context.Context, contentType string, body io.Reader, reqEditors ...client.RequestEditorFn)) *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 io.Reader
+		if args[2] != nil {
+			arg2 = args[2].(io.Reader)
+		}
+		var arg3 []client.RequestEditorFn
+		var variadicArgs []client.RequestEditorFn
+		if len(args) > 3 {
+			variadicArgs = args[3].([]client.RequestEditorFn)
+		}
+		arg3 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call) Return(postGoodsResponse *client.PostGoodsResponse, err error) *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call {
+	_c.Call.Return(postGoodsResponse, err)
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call) RunAndReturn(run func(ctx context.Context, contentType string, body io.Reader, reqEditors ...client.RequestEditorFn) (*client.PostGoodsResponse, error)) *MockAccrualClientWithResponsesInterface_PostGoodsWithBodyWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PostGoodsWithResponse provides a mock function for the type MockAccrualClientWithResponsesInterface
+func (_mock *MockAccrualClientWithResponsesInterface) PostGoodsWithResponse(ctx context.Context, body client.PostGoodsJSONRequestBody, reqEditors ...client.RequestEditorFn) (*client.PostGoodsResponse, error) {
+	var tmpRet mock.Arguments
+	if len(reqEditors) > 0 {
+		tmpRet = _mock.Called(ctx, body, reqEditors)
+	} else {
+		tmpRet = _mock.Called(ctx, body)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostGoodsWithResponse")
+	}
+
+	var r0 *client.PostGoodsResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PostGoodsJSONRequestBody, ...client.RequestEditorFn) (*client.PostGoodsResponse, error)); ok {
+		return returnFunc(ctx, body, reqEditors...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PostGoodsJSONRequestBody, ...client.RequestEditorFn) *client.PostGoodsResponse); ok {
+		r0 = returnFunc(ctx, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*client.PostGoodsResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.PostGoodsJSONRequestBody, ...client.RequestEditorFn) error); ok {
+		r1 = returnFunc(ctx, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PostGoodsWithResponse'
+type MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call struct {
+	*mock.Call
+}
+
+// PostGoodsWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - body client.PostGoodsJSONRequestBody
+//   - reqEditors ...client.RequestEditorFn
+func (_e *MockAccrualClientWithResponsesInterface_Expecter) PostGoodsWithResponse(ctx interface{}, body interface{}, reqEditors ...interface{}) *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call {
+	return &MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call{Call: _e.mock.On("PostGoodsWithResponse",
+		append([]interface{}{ctx, body}, reqEditors...)...)}
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call) Run(run func(ctx context.Context, body client.PostGoodsJSONRequestBody, reqEditors ...client.RequestEditorFn)) *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 client.PostGoodsJSONRequestBody
+		if args[1] != nil {
+			arg1 = args[1].(client.PostGoodsJSONRequestBody)
+		}
+		var arg2 []client.RequestEditorFn
+		var variadicArgs []client.RequestEditorFn
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.RequestEditorFn)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call) Return(postGoodsResponse *client.PostGoodsResponse, err error) *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call {
+	_c.Call.Return(postGoodsResponse, err)
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call) RunAndReturn(run func(ctx context.Context, body client.PostGoodsJSONRequestBody, reqEditors ...client.RequestEditorFn) (*client.PostGoodsResponse, error)) *MockAccrualClientWithResponsesInterface_PostGoodsWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PostOrdersWithBodyWithResponse provides a mock function for the type MockAccrualClientWithResponsesInterface
+func (_mock *MockAccrualClientWithResponsesInterface) PostOrdersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...client.RequestEditorFn) (*client.PostOrdersResponse, error) {
+	var tmpRet mock.Arguments
+	if len(reqEditors) > 0 {
+		tmpRet = _mock.Called(ctx, contentType, body, reqEditors)
+	} else {
+		tmpRet = _mock.Called(ctx, contentType, body)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostOrdersWithBodyWithResponse")
+	}
+
+	var r0 *client.PostOrdersResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...client.RequestEditorFn) (*client.PostOrdersResponse, error)); ok {
+		return returnFunc(ctx, contentType, body, reqEditors...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, io.Reader, ...client.RequestEditorFn) *client.PostOrdersResponse); ok {
+		r0 = returnFunc(ctx, contentType, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*client.PostOrdersResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, io.Reader, ...client.RequestEditorFn) error); ok {
+		r1 = returnFunc(ctx, contentType, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PostOrdersWithBodyWithResponse'
+type MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call struct {
+	*mock.Call
+}
+
+// PostOrdersWithBodyWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - contentType string
+//   - body io.Reader
+//   - reqEditors ...client.RequestEditorFn
+func (_e *MockAccrualClientWithResponsesInterface_Expecter) PostOrdersWithBodyWithResponse(ctx interface{}, contentType interface{}, body interface{}, reqEditors ...interface{}) *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call {
+	return &MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call{Call: _e.mock.On("PostOrdersWithBodyWithResponse",
+		append([]interface{}{ctx, contentType, body}, reqEditors...)...)}
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call) Run(run func(ctx context.Context, contentType string, body io.Reader, reqEditors ...client.RequestEditorFn)) *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 io.Reader
+		if args[2] != nil {
+			arg2 = args[2].(io.Reader)
+		}
+		var arg3 []client.RequestEditorFn
+		var variadicArgs []client.RequestEditorFn
+		if len(args) > 3 {
+			variadicArgs = args[3].([]client.RequestEditorFn)
+		}
+		arg3 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call) Return(postOrdersResponse *client.PostOrdersResponse, err error) *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call {
+	_c.Call.Return(postOrdersResponse, err)
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call) RunAndReturn(run func(ctx context.Context, contentType string, body io.Reader, reqEditors ...client.RequestEditorFn) (*client.PostOrdersResponse, error)) *MockAccrualClientWithResponsesInterface_PostOrdersWithBodyWithResponse_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// PostOrdersWithResponse provides a mock function for the type MockAccrualClientWithResponsesInterface
+func (_mock *MockAccrualClientWithResponsesInterface) PostOrdersWithResponse(ctx context.Context, body client.PostOrdersJSONRequestBody, reqEditors ...client.RequestEditorFn) (*client.PostOrdersResponse, error) {
+	var tmpRet mock.Arguments
+	if len(reqEditors) > 0 {
+		tmpRet = _mock.Called(ctx, body, reqEditors)
+	} else {
+		tmpRet = _mock.Called(ctx, body)
+	}
+	ret := tmpRet
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostOrdersWithResponse")
+	}
+
+	var r0 *client.PostOrdersResponse
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PostOrdersJSONRequestBody, ...client.RequestEditorFn) (*client.PostOrdersResponse, error)); ok {
+		return returnFunc(ctx, body, reqEditors...)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, client.PostOrdersJSONRequestBody, ...client.RequestEditorFn) *client.PostOrdersResponse); ok {
+		r0 = returnFunc(ctx, body, reqEditors...)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*client.PostOrdersResponse)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, client.PostOrdersJSONRequestBody, ...client.RequestEditorFn) error); ok {
+		r1 = returnFunc(ctx, body, reqEditors...)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PostOrdersWithResponse'
+type MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call struct {
+	*mock.Call
+}
+
+// PostOrdersWithResponse is a helper method to define mock.On call
+//   - ctx context.Context
+//   - body client.PostOrdersJSONRequestBody
+//   - reqEditors ...client.RequestEditorFn
+func (_e *MockAccrualClientWithResponsesInterface_Expecter) PostOrdersWithResponse(ctx interface{}, body interface{}, reqEditors ...interface{}) *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call {
+	return &MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call{Call: _e.mock.On("PostOrdersWithResponse",
+		append([]interface{}{ctx, body}, reqEditors...)...)}
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call) Run(run func(ctx context.Context, body client.PostOrdersJSONRequestBody, reqEditors ...client.RequestEditorFn)) *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 client.PostOrdersJSONRequestBody
+		if args[1] != nil {
+			arg1 = args[1].(client.PostOrdersJSONRequestBody)
+		}
+		var arg2 []client.RequestEditorFn
+		var variadicArgs []client.RequestEditorFn
+		if len(args) > 2 {
+			variadicArgs = args[2].([]client.RequestEditorFn)
+		}
+		arg2 = variadicArgs
+		run(
+			arg0,
+			arg1,
+			arg2...,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call) Return(postOrdersResponse *client.PostOrdersResponse, err error) *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call {
+	_c.Call.Return(postOrdersResponse, err)
+	return _c
+}
+
+func (_c *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call) RunAndReturn(run func(ctx context.Context, body client.PostOrdersJSONRequestBody, reqEditors ...client.RequestEditorFn) (*client.PostOrdersResponse, error)) *MockAccrualClientWithResponsesInterface_PostOrdersWithResponse_Call {
 	_c.Call.Return(run)
 	return _c
 }
