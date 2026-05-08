@@ -136,6 +136,7 @@ func TestUserService_Create(t *testing.T) {
 	}
 }
 
+//nolint:goconst
 func TestUserService_CheckPassword(t *testing.T) {
 	login1 := "login 1"
 	password1 := "password 1"

@@ -97,12 +97,6 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
-			"error on store user balance",
-			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
-			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew}, getBalance: model.UserBalance{UserID: userID1, Balance: balance1}, storeBalanceErr: error1},
-			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
-		},
-		{
 			"not found user id by order",
 			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserID: nil},
@@ -197,11 +191,24 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &accrual1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}, getBalance: model.UserBalance{UserID: userID1, Balance: balance1}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessed, retries: 3, accrual: &accrual1}, storeBalance: &storeBalance{userID: userID1, balance: balance1.Add(accrual1)}},
-		}, {
+		},
+		{
 			"new processed status with accrual = 0",
 			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &decimal.Zero}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessed, retries: 3, accrual: &decimal.Zero}, storeBalance: nil},
+		},
+		{
+			"error on store user balance",
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &accrual1}, retryDelay1, retryDelay2},
+			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew}, getBalance: model.UserBalance{UserID: userID1, Balance: balance1}, storeBalanceErr: error1},
+			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
+		},
+		{
+			"error on get balance",
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &accrual1}, retryDelay1, retryDelay2},
+			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}, getBalanceErr: error1},
+			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 	}
 
