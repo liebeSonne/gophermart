@@ -28,7 +28,7 @@ func convertUserOrderStatusToAPI(status model.OrderStatus) (server.UserOrderData
 func convertDecimalToFloat32(amount decimal.Decimal) (float32, error) {
 	accrualFloat64, extract := amount.Float64()
 	if !extract {
-		return 0, errors.New("error on extract accrual value")
+		return 0, fmt.Errorf("error on extract float64 from decimal amount (%v)", amount)
 	}
 	return float32(accrualFloat64), nil
 }
@@ -42,7 +42,7 @@ func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
 	if item.Accrual != nil {
 		accrual, err := convertDecimalToFloat32(*item.Accrual)
 		if err != nil {
-			return server.UserOrderData{}, fmt.Errorf("error on converting accrual value: %w", err)
+			return server.UserOrderData{}, fmt.Errorf("error on converting accrual value (%v): %w", *item.Accrual, err)
 		}
 		accrualPtr = &accrual
 	}
@@ -70,11 +70,11 @@ func convertUserOrdersToAPI(items []model.UserOrder) ([]server.UserOrderData, er
 func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceResponse, error) {
 	balance, err := convertDecimalToFloat32(item.Balance)
 	if err != nil {
-		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting balance value: %w", err)
+		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting balance value (%v): %w", item.Balance, err)
 	}
 	withdrawnSum, err := convertDecimalToFloat32(item.WithdrawnSum)
 	if err != nil {
-		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting withdrawn sum value: %w", err)
+		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting withdrawn sum value (%v): %w", item.WithdrawnSum, err)
 	}
 
 	return server.GetUserBalanceResponse{
@@ -86,7 +86,7 @@ func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceRespo
 func convertUserBalanceWithdrawnToAPI(item model.UserBalanceWithdrawn) (server.WithdrawalData, error) {
 	amount, err := convertDecimalToFloat32(item.Amount)
 	if err != nil {
-		return server.WithdrawalData{}, fmt.Errorf("error on converting amount value: %w", err)
+		return server.WithdrawalData{}, fmt.Errorf("error on converting amount value (%v): %w", item.Amount, err)
 	}
 
 	return server.WithdrawalData{
