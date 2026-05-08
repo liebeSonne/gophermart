@@ -24,7 +24,7 @@ func runApp(
 		return err
 	}
 
-	dependency, err := newDependencyContainer(ctx, cfg, logger, connection)
+	dependency, err := newDependencyContainer(cfg, logger, connection)
 	if err != nil {
 		logger.WithError(err).Error("error creating dependency container")
 		return err

@@ -5,6 +5,7 @@
 package async
 
 import (
+	"context"
 	"time"
 
 	mock "github.com/stretchr/testify/mock"
@@ -236,8 +237,8 @@ func (_c *MockProducer_Setup_Call[T]) RunAndReturn(run func(inputCh <-chan T) Ca
 }
 
 // Start provides a mock function for the type MockProducer
-func (_mock *MockProducer[T]) Start() {
-	_mock.Called()
+func (_mock *MockProducer[T]) Start(ctx context.Context) {
+	_mock.Called(ctx)
 	return
 }
 
@@ -247,13 +248,20 @@ type MockProducer_Start_Call[T any] struct {
 }
 
 // Start is a helper method to define mock.On call
-func (_e *MockProducer_Expecter[T]) Start() *MockProducer_Start_Call[T] {
-	return &MockProducer_Start_Call[T]{Call: _e.mock.On("Start")}
+//   - ctx context.Context
+func (_e *MockProducer_Expecter[T]) Start(ctx interface{}) *MockProducer_Start_Call[T] {
+	return &MockProducer_Start_Call[T]{Call: _e.mock.On("Start", ctx)}
 }
 
-func (_c *MockProducer_Start_Call[T]) Run(run func()) *MockProducer_Start_Call[T] {
+func (_c *MockProducer_Start_Call[T]) Run(run func(ctx context.Context)) *MockProducer_Start_Call[T] {
 	_c.Call.Run(func(args mock.Arguments) {
-		run()
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		run(
+			arg0,
+		)
 	})
 	return _c
 }
@@ -263,7 +271,7 @@ func (_c *MockProducer_Start_Call[T]) Return() *MockProducer_Start_Call[T] {
 	return _c
 }
 
-func (_c *MockProducer_Start_Call[T]) RunAndReturn(run func()) *MockProducer_Start_Call[T] {
+func (_c *MockProducer_Start_Call[T]) RunAndReturn(run func(ctx context.Context)) *MockProducer_Start_Call[T] {
 	_c.Run(run)
 	return _c
 }

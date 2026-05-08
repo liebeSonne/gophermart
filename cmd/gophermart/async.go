@@ -48,27 +48,23 @@ const resultTooManyRetriesDelay = time.Minute * 5
 const resultCountWorkers = 3
 
 func NewRequestProducer(
-	ctx context.Context,
 	logger *logrus.Logger,
 ) async.Producer[string] {
-	return async.NewProducer[string](ctx, requestProducerName, requestProducerChannelSize, logger)
+	return async.NewProducer[string](requestProducerName, requestProducerChannelSize, logger)
 }
 
 func NewRetryProducer(
-	ctx context.Context,
 	logger *logrus.Logger,
 ) async.Producer[string] {
-	return async.NewProducer[string](ctx, retryProducerName, retryProducerChannelSize, logger)
+	return async.NewProducer[string](retryProducerName, retryProducerChannelSize, logger)
 }
 
 func NewSetupProducer(
-	ctx context.Context,
 	logger *logrus.Logger,
 	userOrderProvider provider.UserOrderProvider,
 ) async.OrderIDsProducer {
 	limit := uint(setupSelectLimit)
 	return async.NewOrderIDsProducer(
-		ctx,
 		setupProducerName,
 		setupProducerChannelSize,
 		&limit,
@@ -108,10 +104,9 @@ func NewResultHandler(
 }
 
 func NewJobProducer(
-	ctx context.Context,
 	logger *logrus.Logger,
 ) async.Producer[string] {
-	return async.NewProducer[string](ctx, jobProducerName, jobProducerChannelSize, logger)
+	return async.NewProducer[string](jobProducerName, jobProducerChannelSize, logger)
 }
 
 func runProducers(
@@ -122,17 +117,17 @@ func runProducers(
 ) {
 	// Поставщик задач из http запросов
 	requestProducer := dependency.RequestProducer
-	requestProducer.Start()
+	requestProducer.Start(ctx)
 	requestCh := requestProducer.Produce()
 
 	// Поставщик задач из повторных попыток
 	retryProducer := dependency.RetryProducer
-	retryProducer.Start()
+	retryProducer.Start(ctx)
 	retryCh := retryProducer.Produce()
 
 	// Поставщик задач из БД
 	setupProducer := dependency.SetupProducer
-	setupProducer.Start()
+	setupProducer.Start(ctx)
 	setupCh := setupProducer.Produce()
 
 	// Сливаем всех поставщиков задач в один канал
@@ -140,6 +135,7 @@ func runProducers(
 
 	// Формируем из общего канала задач одного поставщика, для удобства
 	jobProducer = dependency.JobProducer
+	jobProducer.Start(ctx)
 	jobProducer.Setup(jobCh)
 
 	return jobProducer

@@ -12,7 +12,7 @@ import (
 )
 
 type OrderIDsProducer interface {
-	Start()
+	Start(ctx context.Context)
 	Stop() bool
 	Produce() <-chan string
 }
@@ -24,7 +24,6 @@ type OrderIDsProducer interface {
 // waitingOnError - время ожидания после получения ошибки перед следующей попыткой
 // будет выбирать записи из БД порциями в selectLimit и помещать их в канал, до тех пор пока в БД будут записи
 func NewOrderIDsProducer(
-	ctx context.Context,
 	name string,
 	channelSize uint,
 	selectLimit *uint,
@@ -34,7 +33,6 @@ func NewOrderIDsProducer(
 	logger *logrus.Logger,
 ) OrderIDsProducer {
 	return &orderIDsProducer{
-		ctx:                 ctx,
 		name:                name,
 		channelSize:         channelSize,
 		selectLimit:         selectLimit,
@@ -69,7 +67,7 @@ func (p *orderIDsProducer) Produce() <-chan string {
 	return p.ch
 }
 
-func (p *orderIDsProducer) Start() {
+func (p *orderIDsProducer) Start(ctx context.Context) {
 	p.mu.RLock()
 	isStarted := p.started
 	p.mu.RUnlock()
@@ -79,6 +77,8 @@ func (p *orderIDsProducer) Start() {
 	}
 
 	p.mu.Lock()
+
+	p.ctx = ctx
 
 	startTime := time.Now()
 	p.logger.Infof("'%s' producer started at %v", p.name, startTime)

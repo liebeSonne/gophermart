@@ -11,7 +11,7 @@ import (
 type CancelFunc func() bool
 
 type Producer[T any] interface {
-	Start()
+	Start(ctx context.Context)
 	Stop() bool
 
 	Produce() <-chan T
@@ -25,13 +25,11 @@ type Producer[T any] interface {
 // name - название поставщика (для логирования)
 // channelSize - размер канала
 func NewProducer[T any](
-	ctx context.Context,
 	name string,
 	channelSize uint,
 	logger *logrus.Logger,
 ) Producer[T] {
 	return &producer[T]{
-		ctx:         ctx,
 		name:        name,
 		channelSize: channelSize,
 		ch:          nil,
@@ -53,7 +51,7 @@ type producer[T any] struct {
 	mu          sync.RWMutex
 }
 
-func (p *producer[T]) Start() {
+func (p *producer[T]) Start(ctx context.Context) {
 	p.mu.RLock()
 	isStarted := p.started
 	p.mu.RUnlock()
@@ -63,6 +61,8 @@ func (p *producer[T]) Start() {
 	}
 
 	p.mu.Lock()
+
+	p.ctx = ctx
 
 	startTime := time.Now()
 	p.logger.Infof("'%s' producer started at %v", p.name, startTime)

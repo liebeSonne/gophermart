@@ -1,8 +1,6 @@
 package main
 
 import (
-	"context"
-
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/adapter"
@@ -35,7 +33,6 @@ type dependencyContainer struct {
 }
 
 func newDependencyContainer(
-	ctx context.Context,
 	cfg config.Config,
 	logger *logrus.Logger,
 	connection *connectionContainer,
@@ -49,10 +46,10 @@ func newDependencyContainer(
 
 	accrualAdapter := adapter.NewAccrualAdapter(connection.AccrualClient)
 
-	requestProducer := NewRequestProducer(ctx, logger)
-	retryProducer := NewRetryProducer(ctx, logger)
-	setupProducer := NewSetupProducer(ctx, logger, userOrderProvider)
-	jobProducer := NewJobProducer(ctx, logger)
+	requestProducer := NewRequestProducer(logger)
+	retryProducer := NewRetryProducer(logger)
+	setupProducer := NewSetupProducer(logger, userOrderProvider)
+	jobProducer := NewJobProducer(logger)
 
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))
 	userService := service.NewUserService(uowFactory, passwordService, userProvider)
