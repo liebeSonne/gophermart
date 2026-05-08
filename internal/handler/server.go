@@ -223,8 +223,6 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	w.Header().Set("Content-Type", "application/json")
-
 	userID, ok := auth.GetUserIDFromContext(ctx)
 	if !ok {
 		http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
@@ -254,6 +252,7 @@ func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 }
 
