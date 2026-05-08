@@ -5,11 +5,14 @@ services:
     environment:
       POSTGRES_USER: username
       POSTGRES_PASSWORD: password
-      POSTGRES_DB: dbname
+      POSTGRES_DB: dbname # основная БД
+      DB_NAME_GOPHERMART: gophermart_db
+      DB_NAME_ACCRUAL: accrual_db
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./scripts/db/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
 
 volumes:
   postgres_data:

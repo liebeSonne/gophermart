@@ -26,6 +26,8 @@ docker compose up -d
 Остановка `docker-compose`
 ```bash
 docker compose down
+# -v - для удаления volumes
+docker compose down -v
 ```
 
 Просмотр логов
@@ -40,6 +42,8 @@ docker compose logs -f db
 ```bash
 # docker exec -it <имя_контейнера> psql -U <пользователь> -d <база_данных>
 docker compose exec db psql -U username -d dbname
+docker compose exec db psql -U username -d gophermart_db
+docker compose exec db psql -U username -d accrual_db
 ```
 
 Консольные команды:
@@ -49,6 +53,18 @@ docker compose exec db psql -U username -d dbname
 
 ## Запуск сервиса
 
+### Запуск сервиса accrual - системы расчёта начислений
+```
+# параметры запуска
+./cmd/accrual/accrual_linux_amd64 -h
+
+# пример запуска
+./cmd/accrual/accrual_linux_amd64 \
+    -a ":8081" \
+    -d "host=localhost user=username password=password dbname=accrual_db sslmode=disable" 
+```
+
+### Запуск сервитса gopgermart - накопительной системы лояльности
 ```
 # параметры запуска
 ./cmd/gophermart/gophermart -h
@@ -56,8 +72,8 @@ docker compose exec db psql -U username -d dbname
 # пример запуска
 ./cmd/gophermart/gophermart \
     -a ":8080" \
-    -d "host=localhost user=username password=password dbname=dbname sslmode=disable" \
+    -d "host=localhost user=username password=password dbname=gophermart_db sslmode=disable" \
+    -r ":8081" \
     -ll "debug" \
     -lf "text"
-
 ```
