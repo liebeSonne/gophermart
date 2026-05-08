@@ -35,7 +35,6 @@ tests-v:
 
 .PHONY: tests-make-coverage
 tests-make-coverage:
-	#go test -coverprofile=coverage.out $$(go list ./... | grep -vE "\.gen\.go")
 	go test -coverprofile=coverage.out ./...
 	grep -vE "mock|\.gen\.go" coverage.out > coverage.filtered.out
 

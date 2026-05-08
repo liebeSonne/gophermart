@@ -36,7 +36,7 @@ func validateOrderID(orderID string) error {
 
 	isValid, err := validLuhn(orderID)
 	if err != nil {
-		return err
+		return errors.Join(ErrInvalidOrderID, fmt.Errorf("error validating luhn: %w", err))
 	}
 	if !isValid {
 		return fmt.Errorf("invalid lumn order ID (%v): %w", orderID, ErrInvalidOrderID)
