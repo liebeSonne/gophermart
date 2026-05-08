@@ -16,6 +16,10 @@ import (
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
+// NewOrderIDResultWorker - обработчик результатов проверки заказов
+// retryDelay - интервал для повторной попытки обработки заявки (при не финальном статусе и при ошибке)
+// tooManyRetriesDelay - интервал через который произойдет повторная попытка при ответе от внешнего сервиса о слишком большом числе запросов
+// retryProducer - поставщик канала повторных попыток, принимающий запросы на отложенный запуск обработки заявок
 func NewOrderIDResultWorker(
 	ctx context.Context,
 	retryDelay time.Duration,

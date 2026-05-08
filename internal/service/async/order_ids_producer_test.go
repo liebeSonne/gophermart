@@ -105,7 +105,6 @@ func TestOrderIDsProducer_Produce(t *testing.T) {
 			p := NewOrderIDsProducer(
 				ctx,
 				"name",
-				time.Now(),
 				&limit,
 				limitRetriesOnError,
 				waitingOnError,

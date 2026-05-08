@@ -14,10 +14,14 @@ type OrderIDsProducer interface {
 	Produce(size uint) <-chan string
 }
 
+// NewOrderIDsProducer - поставщик канала с заявками на обработку хранящимися в БД.
+// selectLimit - лимит записей в выборке за один раз
+// limitRetriesOnError - количество повторных попыток выборки из БД при получении ошибки
+// waitingOnError - время ожидания после получения ошибки перед следующей попыткой
+// будет выбирать записи из БД порциями в selectLimit и помещать их в канал, до тех пор пока в БД будут записи
 func NewOrderIDsProducer(
 	ctx context.Context,
 	name string,
-	executeAt time.Time,
 	selectLimit *uint,
 	limitRetriesOnError uint,
 	waitingOnError time.Duration,
@@ -28,7 +32,6 @@ func NewOrderIDsProducer(
 		ctx:                 ctx,
 		name:                name,
 		selectLimit:         selectLimit,
-		executeAt:           executeAt,
 		waitingOnError:      waitingOnError,
 		limitRetriesOnError: limitRetriesOnError,
 		userOrderProvider:   userOrderProvider,
@@ -39,7 +42,6 @@ func NewOrderIDsProducer(
 type orderIDsProducer struct {
 	ctx                 context.Context
 	name                string
-	executeAt           time.Time
 	selectLimit         *uint
 	limitRetriesOnError uint
 	waitingOnError      time.Duration
@@ -71,7 +73,7 @@ func (p *orderIDsProducer) Produce(size uint) <-chan string {
 				return
 			default:
 				p.logger.Debugf("'%s' producer select (limit: %v, offset: %v)", p.name, limit, offset)
-				values, err := p.selectOrderIDs(p.ctx, limit, &offset)
+				values, err := p.selectOrderIDs(p.ctx, startTime, limit, &offset)
 				if err != nil {
 					p.logger.WithError(err).Errorf("'%s' producer error on select", p.name)
 					retries++
@@ -105,10 +107,10 @@ func (p *orderIDsProducer) Produce(size uint) <-chan string {
 	return ch
 }
 
-func (p *orderIDsProducer) selectOrderIDs(ctx context.Context, limit, offset *uint) ([]string, error) {
+func (p *orderIDsProducer) selectOrderIDs(ctx context.Context, executeAt time.Time, limit, offset *uint) ([]string, error) {
 	spec := model.FindUserOrderSpecification{
 		Statuses:        []model.OrderStatus{model.OrderStatusNew, model.OrderStatusProcessing},
-		BeforeExecuteAt: p.executeAt,
+		BeforeExecuteAt: executeAt,
 		Limit:           limit,
 		Offset:          offset,
 	}

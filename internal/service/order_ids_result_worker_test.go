@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"github.com/liebeSonne/gophermart/internal/service/async"
 	"testing"
 	"time"
 
@@ -19,6 +18,7 @@ import (
 	"github.com/liebeSonne/gophermart/internal/provider"
 	"github.com/liebeSonne/gophermart/internal/repository"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 func TestNewOrderIDResultWorker(t *testing.T) {

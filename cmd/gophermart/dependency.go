@@ -1,6 +1,10 @@
 package main
 
 import (
+	"context"
+
+	"github.com/sirupsen/logrus"
+
 	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/auth"
 	"github.com/liebeSonne/gophermart/internal/config"
@@ -9,6 +13,7 @@ import (
 	"github.com/liebeSonne/gophermart/internal/repository"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 type dependencyContainer struct {
@@ -21,10 +26,17 @@ type dependencyContainer struct {
 	TokenService                 auth.TokenService
 	CookieService                cookie.Service
 	AccrualAdapter               adapter.AccrualAdapter
+	UOWFactory                   uow.UnitOfWorkFactory
+
+	RequestProducer async.Producer[string]
+	RetryProducer   async.Producer[string]
+	JobProducer     async.Producer[string]
 }
 
 func newDependencyContainer(
+	ctx context.Context,
 	cfg config.Config,
+	logger *logrus.Logger,
 	connection *connectionContainer,
 ) (*dependencyContainer, error) {
 	uowFactory := uow.NewUnitOfWorkFactory(connection.DBClient.Pool())
@@ -34,15 +46,17 @@ func newDependencyContainer(
 	userBalanceProvider := repository.NewUserBalanceRepository(connection.DBClient.Pool())
 	userBalanceWithDrawnProvider := repository.NewUserBalanceWithdrawnRepository(connection.DBClient.Pool())
 
+	accrualAdapter := adapter.NewAccrualAdapter(connection.AccrualClient)
+
+	requestProducer, retryProducer, jobProducer := runProducers(ctx, logger, userOrderProvider)
+
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))
 	userService := service.NewUserService(uowFactory, passwordService, userProvider)
-	userOrderService := service.NewUserOrderService(uowFactory)
+	userOrderService := service.NewUserOrderService(uowFactory, requestProducer)
 	userBalanceService := service.NewUserBalanceService(uowFactory)
 
 	tokenService := auth.NewTokenService(cfg.AuthSecretKey, cfg.AuthTokenExpires)
 	cookieService := cookie.NewService(cfg.AuthCookieTokenKey)
-
-	accrualAdapter := adapter.NewAccrualAdapter(connection.AccrualClient)
 
 	return &dependencyContainer{
 		UserService:                  userService,
@@ -54,5 +68,9 @@ func newDependencyContainer(
 		TokenService:                 tokenService,
 		CookieService:                cookieService,
 		AccrualAdapter:               accrualAdapter,
+		UOWFactory:                   uowFactory,
+		RequestProducer:              requestProducer,
+		RetryProducer:                retryProducer,
+		JobProducer:                  jobProducer,
 	}, nil
 }

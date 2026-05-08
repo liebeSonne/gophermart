@@ -13,6 +13,7 @@ import (
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/repository"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 func TestUserOrderService_Upload(t *testing.T) {
@@ -30,7 +31,8 @@ func TestUserOrderService_Upload(t *testing.T) {
 		input UploadUserOrderInput
 	}
 	type want struct {
-		err error
+		err            error
+		produceOrderID *string
 	}
 	testCases := []struct {
 		name string
@@ -42,37 +44,37 @@ func TestUserOrderService_Upload(t *testing.T) {
 			"invalid order id",
 			on{UploadUserOrderInput{"", userID1}},
 			when{},
-			want{ErrInvalidOrderID},
+			want{err: ErrInvalidOrderID},
 		},
 		{
 			"err on find user order",
 			on{UploadUserOrderInput{orderID1, userID1}},
 			when{findOrderErr: error1},
-			want{error1},
+			want{err: error1},
 		},
 		{
 			"already uploaded by other user",
 			on{UploadUserOrderInput{orderID1, userID1}},
 			when{findOrder: &model.UserOrder{OrderID: orderID1, UserID: userID2}},
-			want{ErrUserOrderAlreadyUploadedByOtherUser},
+			want{err: ErrUserOrderAlreadyUploadedByOtherUser},
 		},
 		{
 			"already uploaded by user",
 			on{UploadUserOrderInput{orderID1, userID1}},
 			when{findOrder: &model.UserOrder{OrderID: orderID1, UserID: userID1}},
-			want{ErrUserOrderAlreadyUploadedByUser},
+			want{err: ErrUserOrderAlreadyUploadedByUser},
 		},
 		{
 			"error on store",
 			on{UploadUserOrderInput{orderID1, userID1}},
 			when{storeErr: error1},
-			want{error1},
+			want{err: error1},
 		},
 		{
 			"success",
 			on{UploadUserOrderInput{orderID1, userID1}},
 			when{},
-			want{nil},
+			want{err: nil, produceOrderID: &orderID1},
 		},
 	}
 
@@ -91,7 +93,14 @@ func TestUserOrderService_Upload(t *testing.T) {
 				return fn(repositoryProvider)
 			}).Maybe()
 
-			s := NewUserOrderService(uowFactory)
+			requestProducer := async.NewMockProducer[string](t)
+			requestProducer.EXPECT().Add(tc.on.input.OrderID).RunAndReturn(func(value string) {
+				if tc.want.produceOrderID != nil {
+					assert.Equal(t, *tc.want.produceOrderID, value)
+				}
+			}).Maybe()
+
+			s := NewUserOrderService(uowFactory, requestProducer)
 
 			userOrder, err := s.Upload(t.Context(), tc.on.input)
 

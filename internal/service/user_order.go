@@ -8,6 +8,7 @@ import (
 
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 var ErrUserOrderAlreadyUploadedByUser = errors.New("user order already uploaded by user")
@@ -19,14 +20,17 @@ type UserOrderService interface {
 
 func NewUserOrderService(
 	uowFactory uow.UnitOfWorkFactory,
+	requestProducer async.Producer[string],
 ) UserOrderService {
 	return &userOrderService{
-		uowFactory: uowFactory,
+		uowFactory:      uowFactory,
+		requestProducer: requestProducer,
 	}
 }
 
 type userOrderService struct {
-	uowFactory uow.UnitOfWorkFactory
+	uowFactory      uow.UnitOfWorkFactory
+	requestProducer async.Producer[string]
 }
 
 func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInput) (model.UserOrder, error) {
@@ -71,6 +75,9 @@ func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInpu
 	if err != nil {
 		return model.UserOrder{}, err
 	}
+
+	// Отправляем заказ из запроса на асинхронную обработку
+	u.requestProducer.Add(newUserOrder.OrderID)
 
 	return newUserOrder, nil
 }

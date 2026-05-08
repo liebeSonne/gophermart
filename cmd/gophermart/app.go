@@ -24,11 +24,13 @@ func runApp(
 		return err
 	}
 
-	dependency, err := newDependencyContainer(cfg, connection)
+	dependency, err := newDependencyContainer(ctx, cfg, logger, connection)
 	if err != nil {
 		logger.WithError(err).Error("error creating dependency container")
 		return err
 	}
+
+	runWorkers(ctx, logger, dependency)
 
 	router, err := initRouter(dependency, logger)
 	if err != nil {
