@@ -260,6 +260,7 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 
 			w := NewOrderIDResultWorker(
 				ctx,
+				"name",
 				tc.on.retryDelay,
 				tc.on.tooManyRetriesDelay,
 				retryProducer,

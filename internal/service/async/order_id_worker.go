@@ -18,11 +18,13 @@ type OrderIDWorkerResult struct {
 
 func NewOrderIDWorker(
 	ctx context.Context,
+	name string,
 	accrualAdapter adapter.AccrualAdapter,
 	logger *logrus.Logger,
 ) Worker[string, OrderIDWorkerResult] {
 	return &orderIDWorker{
 		ctx:            ctx,
+		name:           name,
 		accrualAdapter: accrualAdapter,
 		logger:         logger,
 	}
@@ -30,13 +32,14 @@ func NewOrderIDWorker(
 
 type orderIDWorker struct {
 	ctx            context.Context
+	name           string
 	accrualAdapter adapter.AccrualAdapter
 	logger         *logrus.Logger
 }
 
 func (w *orderIDWorker) Handle(orderID string, resulCh chan<- OrderIDWorkerResult) {
 	orderData, err := w.accrualAdapter.GetOrders(w.ctx, orderID)
-	w.logger.Debugf("order id worker get order data (%+v) error (%v)", orderData, err)
+	w.logger.Debugf("'%s' worker get order data (%+v) error (%v)", w.name, orderData, err)
 
 	if err != nil {
 		resulCh <- OrderIDWorkerResult{

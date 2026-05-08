@@ -20,6 +20,8 @@ const setupProducerName = "setup"
 const jobProducerName = "job"
 const workerHandlerName = "worker"
 const resultHandlerName = "result"
+const jobWorkerName = "job-order-id"
+const resultHandlerWorkerName = "result-order-id"
 
 // Настройки request producer
 const requestProducerChannelSize = 500
@@ -80,7 +82,7 @@ func NewWorkerHandler(
 	logger *logrus.Logger,
 	accrualAdapter adapter.AccrualAdapter,
 ) async.WorkerHandler[string, async.OrderIDWorkerResult] {
-	worker := async.NewOrderIDWorker(ctx, accrualAdapter, logger)
+	worker := async.NewOrderIDWorker(ctx, jobWorkerName, accrualAdapter, logger)
 	return async.NewWorkerHandler[string, async.OrderIDWorkerResult](ctx, workerHandlerName, worker.Handle, logger)
 }
 
@@ -93,6 +95,7 @@ func NewResultHandler(
 ) async.WorkerHandler[async.OrderIDWorkerResult, struct{}] {
 	worker := service.NewOrderIDResultWorker(
 		ctx,
+		resultHandlerWorkerName,
 		resultRetryDelay,
 		resultTooManyRetriesDelay,
 		retryProducer,

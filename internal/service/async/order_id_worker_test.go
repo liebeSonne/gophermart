@@ -83,7 +83,7 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 
 			l, _ := test.NewNullLogger()
 
-			w := NewOrderIDWorker(ctx, accrualAdapter, l)
+			w := NewOrderIDWorker(ctx, "name", accrualAdapter, l)
 
 			outCh := make(chan OrderIDWorkerResult, 1)
 

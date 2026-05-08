@@ -22,6 +22,7 @@ import (
 // retryProducer - поставщик канала повторных попыток, принимающий запросы на отложенный запуск обработки заявок
 func NewOrderIDResultWorker(
 	ctx context.Context,
+	name string,
 	retryDelay time.Duration,
 	tooManyRetriesDelay time.Duration,
 	retryProducer async.Producer[string],
@@ -31,6 +32,7 @@ func NewOrderIDResultWorker(
 ) async.Worker[async.OrderIDWorkerResult, struct{}] {
 	return &orderIDResultWorker{
 		ctx:                 ctx,
+		name:                name,
 		retryDelay:          retryDelay,
 		tooManyRetriesDelay: tooManyRetriesDelay,
 		retryProducer:       retryProducer,
@@ -42,6 +44,7 @@ func NewOrderIDResultWorker(
 
 type orderIDResultWorker struct {
 	ctx                 context.Context
+	name                string
 	retryDelay          time.Duration
 	tooManyRetriesDelay time.Duration
 	retryProducer       async.Producer[string]
@@ -56,13 +59,13 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 
 	defer func() {
 		if doRetry {
-			w.logger.Debugf("result worker schedule retry order (%v) delay (%v)", result.OrderID, executeAtDelay)
+			w.logger.Debugf("'%s' worker schedule retry order (%v) delay (%v)", w.name, result.OrderID, executeAtDelay)
 			_ = w.retryProducer.Schedule(result.OrderID, executeAtDelay)
 		}
 	}()
 
 	if result.Err != nil {
-		w.logger.Debugf("result worker do retry order (%v) on result error (%v)", result.OrderID, result.Err)
+		w.logger.Debugf("'%s' worker do retry order (%v) on result error (%v)", w.name, result.OrderID, result.Err)
 		doRetry = true
 		return
 	}
@@ -70,7 +73,7 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 	var newOrderStatusPtr *model.OrderStatus
 	newOrderStatusPtr, err := w.calculateNewOrderStatus(result.OrderID, result.Status)
 	if err != nil {
-		w.logger.Debugf("result worker do retry order (%v) on new status error (%v)", result.OrderID, err)
+		w.logger.Debugf("'%s' worker do retry order (%v) on new status error (%v)", w.name, result.OrderID, err)
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		doRetry = true
 		return
@@ -80,12 +83,12 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 	if err != nil {
 		doRetry = true
 		executeAtDelay = w.calculateExecuteAtDelay(err)
-		w.logger.WithError(err).Errorf("result worker failed to find user by order (%v)", result.OrderID)
-		w.logger.Debugf("result worker do retry order (%v) on found user by order error (%v)", result.OrderID, err)
+		w.logger.WithError(err).Errorf("'%s' worker failed to find user by order (%v)", w.name, result.OrderID)
+		w.logger.Debugf("'%s' worker do retry order (%v) on found user by order error (%v)", w.name, result.OrderID, err)
 		return
 	}
 	if userIDPtr == nil {
-		w.logger.Warnf("result worker not found user by order (%v)", result.OrderID)
+		w.logger.Warnf("'%s' worker not found user by order (%v)", w.name, result.OrderID)
 		return
 	}
 
@@ -101,8 +104,8 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 	if err != nil {
 		doRetry = true
 		executeAtDelay = w.calculateExecuteAtDelay(err)
-		w.logger.WithError(err).Errorf("result worker failed to handle user order (%v)", result.OrderID)
-		w.logger.Debugf("result worker do retry order (%v) on execute error (%v)", result.OrderID, err)
+		w.logger.WithError(err).Errorf("'%s' worker failed to handle user order (%v)", w.name, result.OrderID)
+		w.logger.Debugf("'%s' worker do retry order (%v) on execute error (%v)", w.name, result.OrderID, err)
 		return
 	}
 }
@@ -133,7 +136,7 @@ func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *ad
 	if status != nil {
 		newStatus, err := ConvertOrderStatus(*status)
 		if err != nil {
-			return nil, fmt.Errorf("result worker failed to convert result order (%v) status (%v): %w", orderID, status, err)
+			return nil, fmt.Errorf("'%s' worker failed to convert result order (%v) status (%v): %w", w.name, orderID, status, err)
 		}
 		newOrderStatusPtr = &newStatus
 	}
@@ -169,14 +172,14 @@ func (w *orderIDResultWorker) updateUserOrder(
 	}
 	// Пропускаем обработку если запись не найдена
 	if userOrderPtr == nil {
-		w.logger.Warnf("result worker not found order (%v)", orderID)
+		w.logger.Warnf("'%s' worker not found order (%v)", w.name, orderID)
 		return doRetry, executeAtDelay, err
 	}
 
 	userOrder := *userOrderPtr
 	// Не изменяем запись, если у неё уже финальный статус = обработанный
 	if userOrder.Status == model.OrderStatusProcessed {
-		w.logger.Warnf("result worker not found user order (%v)", orderID)
+		w.logger.Warnf("'%s' worker not found user order (%v)", w.name, orderID)
 		return doRetry, executeAtDelay, err
 	}
 
@@ -198,13 +201,13 @@ func (w *orderIDResultWorker) updateUserOrder(
 		executeAtDelay = w.calculateExecuteAtDelay(nil)
 		userOrder.ExecuteAt = time.Now().Add(executeAtDelay)
 		doRetry = true
-		w.logger.Debugf("result worker do retry order (%v) on not final status (%v)", orderID, userOrder.Status)
+		w.logger.Debugf("'%s' worker do retry order (%v) on not final status (%v)", w.name, orderID, userOrder.Status)
 	}
 	userOrder.Retries++
 
 	err = orderRepository.Store(w.ctx, []model.UserOrder{userOrder})
 	if err != nil {
-		err = fmt.Errorf("result worker failed to store result user order (%v): %w", orderID, err)
+		err = fmt.Errorf("'%s' worker failed to store result user order (%v): %w", w.name, orderID, err)
 		return doRetry, executeAtDelay, err
 	}
 
@@ -213,13 +216,13 @@ func (w *orderIDResultWorker) updateUserOrder(
 		var userBalance model.UserBalance
 		userBalance, err = balanceRepository.GetByUserID(w.ctx, userOrder.UserID)
 		if err != nil {
-			err = fmt.Errorf("result worker failed to get user  (%v) balance: %w", userOrder.UserID, err)
+			err = fmt.Errorf("'%s' worker failed to get user  (%v) balance: %w", w.name, userOrder.UserID, err)
 			return doRetry, executeAtDelay, err
 		}
 		userBalance.Balance = userBalance.Balance.Add(*changeBalance)
 		err = balanceRepository.Store(w.ctx, userBalance)
 		if err != nil {
-			err = fmt.Errorf("result worker failed to store user (%v) balance: %w", userOrder.UserID, err)
+			err = fmt.Errorf("'%s' worker failed to store user (%v) balance: %w", w.name, userOrder.UserID, err)
 			return doRetry, executeAtDelay, err
 		}
 	}
