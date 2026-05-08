@@ -130,7 +130,7 @@ func (s *Server) LoginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusAccepted)
+	w.WriteHeader(http.StatusOK)
 }
 
 func (s *Server) UploadUserOrders(w http.ResponseWriter, r *http.Request) {
