@@ -13,7 +13,7 @@ import (
 const (
 	DefaultRunAddress           = ":8080"
 	DefaultDatabaseURI          = ""
-	DefaultAccrualSystemAddress = ":8081"
+	DefaultAccrualSystemAddress = "http://localhost:8081"
 	DefaultLogLever             = LogLevelInfo
 	DefaultLogFormat            = LogFormatText
 	DefaultPasswordSecretKey    = "secret-123"
@@ -38,7 +38,7 @@ const (
 type Config struct {
 	RunAddress           string        `env:"RUN_ADDRESS" env-default:":8080" env-description:"run address: host and port"`
 	DatabaseURI          string        `env:"DATABASE_URI" env-default:"" env-description:"database URI"`
-	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS" env-default:":8081" env-description:"accrual system address"`
+	AccrualSystemAddress string        `env:"ACCRUAL_SYSTEM_ADDRESS" env-default:"http://localhost:8081" env-description:"accrual system address"`
 	LogLevel             LogLevel      `env:"LOG_LEVEL" env-default:"info" env-description:"log level: trace, debug, info, warn, error, fatal, panic"`
 	LogFormat            LogFormat     `env:"LOG_FORMAT" env-default:"text" env-description:"log format: text, json"`
 	PasswordSecretKey    string        `env:"PASSWORD_SECRET_KEY" env-default:"secret-123" env-description:"secret key for password hash"`

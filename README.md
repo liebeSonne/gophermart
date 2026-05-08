@@ -73,7 +73,7 @@ docker compose exec db psql -U username -d accrual_db
 ./cmd/gophermart/gophermart \
     -a ":8080" \
     -d "host=localhost user=username password=password dbname=gophermart_db sslmode=disable" \
-    -r ":8081" \
+    -r "http://localhost:8081" \
     -ll "debug" \
     -lf "text"
 ```
