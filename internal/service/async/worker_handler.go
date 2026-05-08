@@ -55,6 +55,7 @@ func (h *workerHandler[I, O]) runWorker(inCh <-chan I, outCh chan<- O) {
 				h.logger.Debugf("'%s' worker handler worker finished on input channel closed", h.name)
 				return
 			}
+			h.logger.Debugf("'%s' worker handler handle value (%+v) ", h.name, value)
 			h.handler(value, outCh)
 		}
 	}

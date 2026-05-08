@@ -56,11 +56,13 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 
 	defer func() {
 		if doRetry {
+			w.logger.Debugf("result worker schedule retry order (%v) delay (%v)", result.OrderID, executeAtDelay)
 			_ = w.retryProducer.Schedule(result.OrderID, executeAtDelay)
 		}
 	}()
 
 	if result.Err != nil {
+		w.logger.Debugf("result worker do retry order (%v) on result error (%v)", result.OrderID, result.Err)
 		doRetry = true
 		return
 	}
@@ -68,6 +70,7 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 	var newOrderStatusPtr *model.OrderStatus
 	newOrderStatusPtr, err := w.calculateNewOrderStatus(result.OrderID, result.Status)
 	if err != nil {
+		w.logger.Debugf("result worker do retry order (%v) on new status error (%v)", result.OrderID, err)
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		doRetry = true
 		return
@@ -78,6 +81,7 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 		doRetry = true
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		w.logger.WithError(err).Errorf("result worker failed to find user by order (%v)", result.OrderID)
+		w.logger.Debugf("result worker do retry order (%v) on found user by order error (%v)", result.OrderID, err)
 		return
 	}
 	if userIDPtr == nil {
@@ -98,6 +102,7 @@ func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- 
 		doRetry = true
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		w.logger.WithError(err).Errorf("result worker failed to handle user order (%v)", result.OrderID)
+		w.logger.Debugf("result worker do retry order (%v) on execute error (%v)", result.OrderID, err)
 		return
 	}
 }
@@ -193,6 +198,7 @@ func (w *orderIDResultWorker) updateUserOrder(
 		executeAtDelay = w.calculateExecuteAtDelay(nil)
 		userOrder.ExecuteAt = time.Now().Add(executeAtDelay)
 		doRetry = true
+		w.logger.Debugf("result worker do retry order (%v) on not final status (%v)", orderID, userOrder.Status)
 	}
 	userOrder.Retries++
 

@@ -80,7 +80,7 @@ func NewWorkerHandler(
 	logger *logrus.Logger,
 	accrualAdapter adapter.AccrualAdapter,
 ) async.WorkerHandler[string, async.OrderIDWorkerResult] {
-	worker := async.NewOrderIDWorker(ctx, accrualAdapter)
+	worker := async.NewOrderIDWorker(ctx, accrualAdapter, logger)
 	return async.NewWorkerHandler[string, async.OrderIDWorkerResult](ctx, workerHandlerName, worker.Handle, logger)
 }
 

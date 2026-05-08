@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
+	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -80,7 +81,9 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 			accrualAdapter := adapter.NewMockAccrualAdapter(t)
 			accrualAdapter.EXPECT().GetOrders(mock.Anything, tc.on.orderID).Return(tc.when.getOrder, tc.when.getOrderErr).Once()
 
-			w := NewOrderIDWorker(ctx, accrualAdapter)
+			l, _ := test.NewNullLogger()
+
+			w := NewOrderIDWorker(ctx, accrualAdapter, l)
 
 			outCh := make(chan OrderIDWorkerResult, 1)
 
