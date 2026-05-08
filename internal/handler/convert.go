@@ -26,10 +26,7 @@ func convertUserOrderStatusToAPI(status model.OrderStatus) (server.UserOrderData
 }
 
 func convertDecimalToFloat64(amount decimal.Decimal) (float64, error) {
-	accrualFloat64, extract := amount.Float64()
-	if !extract {
-		return 0, fmt.Errorf("error on extract float64 from decimal amount (%v)", amount)
-	}
+	accrualFloat64, _ := amount.Float64()
 	return accrualFloat64, nil
 }
 
