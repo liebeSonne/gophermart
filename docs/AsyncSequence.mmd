@@ -59,8 +59,13 @@ sequenceDiagram
     loop Обработка канала результатов
         ResultCh->>ResultHandler: Получение данных (<-ch)
         activate ResultHandler
-            ResultHandler->>+DB: Сохранение результата в заказ (status, accrual, execute_at=now+delay, retries++)
-            DB-->>-ResultHandler: ok
+            opt если текущий статус БД != PROCESSED
+                ResultHandler->>+DB: Сохранение результата в заказ (status, [accrual (если status == PROCESSED)], execute_at=now+delay, retries++)
+                opt если новый статус = PROCESSED и есть accrual > 0
+                    ResultHandler->>DB: Добавление accrual в баланс
+                end
+                DB-->>-ResultHandler: ok
+            end
             opt если ошибка или не финальный статус
                 ResultHandler->>PRetry: передача на повторную попытку
                 activate PRetry
