@@ -105,6 +105,7 @@ func TestOrderIDsProducer_Produce(t *testing.T) {
 			p := NewOrderIDsProducer(
 				ctx,
 				"name",
+				tc.on.channelSize,
 				&limit,
 				limitRetriesOnError,
 				waitingOnError,
@@ -112,7 +113,8 @@ func TestOrderIDsProducer_Produce(t *testing.T) {
 				l,
 			)
 
-			ch := p.Produce(tc.on.channelSize)
+			p.Start()
+			ch := p.Produce()
 
 			if tc.on.cancelCtx {
 				cancel()

@@ -2,6 +2,7 @@ package async
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -11,10 +12,13 @@ import (
 )
 
 type OrderIDsProducer interface {
-	Produce(size uint) <-chan string
+	Start()
+	Stop() bool
+	Produce() <-chan string
 }
 
 // NewOrderIDsProducer - поставщик канала с заявками на обработку хранящимися в БД.
+// channelSize - размер канала
 // selectLimit - лимит записей в выборке за один раз
 // limitRetriesOnError - количество повторных попыток выборки из БД при получении ошибки
 // waitingOnError - время ожидания после получения ошибки перед следующей попыткой
@@ -22,6 +26,7 @@ type OrderIDsProducer interface {
 func NewOrderIDsProducer(
 	ctx context.Context,
 	name string,
+	channelSize uint,
 	selectLimit *uint,
 	limitRetriesOnError uint,
 	waitingOnError time.Duration,
@@ -31,33 +36,82 @@ func NewOrderIDsProducer(
 	return &orderIDsProducer{
 		ctx:                 ctx,
 		name:                name,
+		channelSize:         channelSize,
 		selectLimit:         selectLimit,
 		waitingOnError:      waitingOnError,
 		limitRetriesOnError: limitRetriesOnError,
 		userOrderProvider:   userOrderProvider,
 		logger:              logger,
+		ch:                  nil,
+		closed:              true,
+		started:             false,
+		cancel:              nil,
 	}
 }
 
 type orderIDsProducer struct {
 	ctx                 context.Context
 	name                string
+	channelSize         uint
 	selectLimit         *uint
 	limitRetriesOnError uint
 	waitingOnError      time.Duration
 	userOrderProvider   provider.UserOrderProvider
 	logger              *logrus.Logger
+	ch                  chan string
+	closed              bool
+	started             bool
+	cancel              CancelFunc
+	mu                  sync.RWMutex
 }
 
-func (p *orderIDsProducer) Produce(size uint) <-chan string {
-	startTime := time.Now()
+func (p *orderIDsProducer) Produce() <-chan string {
+	return p.ch
+}
 
+func (p *orderIDsProducer) Start() {
+	p.mu.RLock()
+	isStarted := p.started
+	p.mu.RUnlock()
+
+	if isStarted {
+		return
+	}
+
+	p.mu.Lock()
+
+	startTime := time.Now()
 	p.logger.Infof("'%s' producer started at %v", p.name, startTime)
 
-	ch := make(chan string, size)
+	p.ch = make(chan string, p.channelSize)
+	p.closed = false
+
+	doneCh := make(chan struct{})
+	var once sync.Once
+
+	cancel := func() bool {
+		stopped := false
+		once.Do(func() {
+			close(doneCh)
+			stopped = true
+		})
+		return stopped
+	}
+
+	p.cancel = cancel
+	p.started = true
+
+	p.mu.Unlock()
 
 	go func() {
-		defer close(ch)
+		defer func() {
+			p.mu.Lock()
+			close(p.ch)
+			p.closed = true
+			p.started = false
+			p.cancel = nil
+			p.mu.Unlock()
+		}()
 		defer func() {
 			p.logger.Infof("'%s' producer finished at %v (%v)", p.name, time.Now(), time.Since(startTime))
 		}()
@@ -69,7 +123,10 @@ func (p *orderIDsProducer) Produce(size uint) <-chan string {
 		for {
 			select {
 			case <-p.ctx.Done():
-				p.logger.Infof("'%s' producer context closed (%v)", p.name, p.ctx.Err())
+				p.logger.Infof("'%s' producer finished on context closed (%v)", p.name, p.ctx.Err())
+				return
+			case <-doneCh:
+				p.logger.Infof("'%s' producer finished on cancel", p.name)
 				return
 			default:
 				p.logger.Debugf("'%s' producer select (limit: %v, offset: %v)", p.name, limit, offset)
@@ -86,12 +143,12 @@ func (p *orderIDsProducer) Produce(size uint) <-chan string {
 				}
 
 				if len(values) == 0 {
-					p.logger.Debugf("'%s' producer finish on size %d", p.name, size)
+					p.logger.Debugf("'%s' producer finish on count values %d", p.name, len(values))
 					return
 				}
 
 				for _, v := range values {
-					ch <- v
+					p.ch <- v
 				}
 
 				if limit == nil {
@@ -103,8 +160,13 @@ func (p *orderIDsProducer) Produce(size uint) <-chan string {
 			}
 		}
 	}()
+}
 
-	return ch
+func (p *orderIDsProducer) Stop() bool {
+	if p.cancel != nil {
+		return p.cancel()
+	}
+	return false
 }
 
 func (p *orderIDsProducer) selectOrderIDs(ctx context.Context, executeAt time.Time, limit, offset *uint) ([]string, error) {

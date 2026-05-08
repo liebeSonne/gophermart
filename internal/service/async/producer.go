@@ -21,6 +21,9 @@ type Producer[T any] interface {
 	Setup(inputCh <-chan T) CancelFunc
 }
 
+// NewProducer - поставщик данных через канал
+// name - название поставщика (для логирования)
+// channelSize - размер канала
 func NewProducer[T any](
 	ctx context.Context,
 	name string,
@@ -100,7 +103,7 @@ func (p *producer[T]) Start() {
 		for {
 			select {
 			case <-p.ctx.Done():
-				p.logger.Infof("'%s' producer finished on context closed", p.name)
+				p.logger.Infof("'%s' producer finished on context closed (%v)", p.name, p.ctx.Err())
 				return
 			case <-doneCh:
 				p.logger.Infof("'%s' producer finished on cancel", p.name)

@@ -70,6 +70,7 @@ func NewSetupProducer(
 	return async.NewOrderIDsProducer(
 		ctx,
 		setupProducerName,
+		setupProducerChannelSize,
 		&limit,
 		setupLimitRetriesOnError,
 		setupWaitingOnError,
@@ -127,7 +128,8 @@ func runProducers(
 
 	// Поставщик задач из БД
 	setupProducer := NewSetupProducer(ctx, logger, userOrderProvider)
-	setupCh := setupProducer.Produce(setupProducerChannelSize)
+	setupProducer.Start()
+	setupCh := setupProducer.Produce()
 
 	// Сливаем всех поставщиков задач в один канал
 	jobCh := async.FanIn(ctx, requestCh, retryCh, setupCh)
