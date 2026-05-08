@@ -10,7 +10,8 @@ import (
 
 func TestAddWithdrawnInput_Validate(t *testing.T) {
 	userID1 := uuid.New()
-	orderID1 := "123"
+	orderID1 := "12345678903"
+	invalidOrderID1 := "111"
 	amountPositive1 := decimal.NewFromFloat(10.5)
 	amountNegative1 := decimal.NewFromFloat(-10.5)
 	amountZero := decimal.Zero
@@ -44,6 +45,11 @@ func TestAddWithdrawnInput_Validate(t *testing.T) {
 		{
 			"empty order id",
 			on{AddWithdrawnInput{userID1, "", amountPositive1}},
+			want{ErrInvalidOrderID},
+		},
+		{
+			"invalid order id",
+			on{AddWithdrawnInput{userID1, invalidOrderID1, amountPositive1}},
 			want{ErrInvalidOrderID},
 		},
 		{

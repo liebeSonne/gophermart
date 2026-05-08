@@ -8,7 +8,8 @@ import (
 )
 
 func TestUploadUserOrderInput_Validate(t *testing.T) {
-	orderID1 := "123"
+	orderID1 := "12345678903"
+	invalidOrderID1 := "111"
 	userID1 := uuid.New()
 
 	type on struct {
@@ -30,6 +31,11 @@ func TestUploadUserOrderInput_Validate(t *testing.T) {
 		{
 			"empty order ID",
 			on{UploadUserOrderInput{"", userID1}},
+			want{ErrInvalidOrderID},
+		},
+		{
+			"invalid order ID",
+			on{UploadUserOrderInput{invalidOrderID1, userID1}},
 			want{ErrInvalidOrderID},
 		},
 		{

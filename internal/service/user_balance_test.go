@@ -16,7 +16,8 @@ import (
 )
 
 func TestUserBalanceService_AddWithdrawn(t *testing.T) {
-	orderID1 := "123"
+	orderID1 := "12345678903"
+	invalidOrderID1 := "111"
 	userID1 := uuid.New()
 	amountPositive1 := decimal.NewFromFloat(10.5)
 	amountNegative1 := decimal.NewFromFloat(-10.5)
@@ -49,6 +50,12 @@ func TestUserBalanceService_AddWithdrawn(t *testing.T) {
 		{
 			"empty input orderID",
 			on{AddWithdrawnInput{userID1, "", amountPositive1}},
+			when{},
+			want{ErrInvalidOrderID},
+		},
+		{
+			"invalid input orderID",
+			on{AddWithdrawnInput{userID1, invalidOrderID1, amountPositive1}},
 			when{},
 			want{ErrInvalidOrderID},
 		},

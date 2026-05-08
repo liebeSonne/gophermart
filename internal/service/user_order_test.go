@@ -17,7 +17,8 @@ import (
 )
 
 func TestUserOrderService_Upload(t *testing.T) {
-	orderID1 := "123"
+	orderID1 := "12345678903"
+	invalidOrderID1 := "111"
 	userID1 := uuid.New()
 	userID2 := uuid.New()
 	error1 := errors.New("error 1")
@@ -41,8 +42,14 @@ func TestUserOrderService_Upload(t *testing.T) {
 		want want
 	}{
 		{
-			"invalid order id",
+			"empty order id",
 			on{UploadUserOrderInput{"", userID1}},
+			when{},
+			want{err: ErrInvalidOrderID},
+		},
+		{
+			"invalid order id",
+			on{UploadUserOrderInput{invalidOrderID1, userID1}},
 			when{},
 			want{err: ErrInvalidOrderID},
 		},
