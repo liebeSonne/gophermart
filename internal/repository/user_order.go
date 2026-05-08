@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 
@@ -19,7 +20,7 @@ type UserOrderRepository interface {
 	Store(ctx context.Context, items []model.UserOrder) error
 	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error)
 	FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error)
-	FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error)
+	FindOrderIDToExecuteAtMap(ctx context.Context, spec model.FindUserOrderSpecification) (map[string]time.Time, error)
 	FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error)
 }
 
@@ -131,12 +132,12 @@ func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string)
 	return &item, nil
 }
 
-func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error) {
+func (r *userOrderRepository) FindOrderIDToExecuteAtMap(ctx context.Context, spec model.FindUserOrderSpecification) (map[string]time.Time, error) {
 	const sqlQuery = `
-		SELECT order_id
+		SELECT order_id, execute_at
 		FROM user_order 
 		WHERE 
-		    execute_at <= $1
+		    updated_at <= $1
 			AND status = ANY($2) 
 		ORDER BY execute_at
 		LIMIT $3 OFFSET $4
@@ -147,7 +148,7 @@ func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindU
 		intStatuses = append(intStatuses, int(status))
 	}
 
-	rows, err := r.client.Query(ctx, sqlQuery, spec.BeforeExecuteAt, intStatuses, spec.Limit, spec.Offset)
+	rows, err := r.client.Query(ctx, sqlQuery, spec.BeforeUpdatedAt, intStatuses, spec.Limit, spec.Offset)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -155,20 +156,20 @@ func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindU
 		return nil, fmt.Errorf("error on query: %w", err)
 	}
 
-	orderIDs := make([]string, 0)
+	resultMap := make(map[string]time.Time)
 	for rows.Next() {
-		var orderID string
-		err = rows.Scan(&orderID)
+		var item OrderDataShort
+		err = rows.Scan(&item.OrderID, &item.ExecuteAt)
 		if err != nil {
 			return nil, fmt.Errorf("error on scan row: %w", err)
 		}
-		orderIDs = append(orderIDs, orderID)
+		resultMap[item.OrderID] = item.ExecuteAt
 	}
 	if rows.Err() != nil {
 		return nil, fmt.Errorf("error on scan rows: %w", rows.Err())
 	}
 
-	return orderIDs, nil
+	return resultMap, nil
 }
 
 func (r *userOrderRepository) FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error) {
@@ -190,4 +191,9 @@ func (r *userOrderRepository) FindUserIDByOrderID(ctx context.Context, orderID s
 	}
 
 	return &userID, nil
+}
+
+type OrderDataShort struct {
+	OrderID   string    `db:"order_id"`
+	ExecuteAt time.Time `db:"execute_at"`
 }

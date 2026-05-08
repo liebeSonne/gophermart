@@ -30,6 +30,7 @@ func NewOrderIDsProducer(
 	limitRetriesOnError uint,
 	waitingOnError time.Duration,
 	userOrderProvider provider.UserOrderProvider,
+	retryProducer Producer[string],
 	logger *logrus.Logger,
 ) OrderIDsProducer {
 	return &orderIDsProducer{
@@ -39,6 +40,7 @@ func NewOrderIDsProducer(
 		waitingOnError:      waitingOnError,
 		limitRetriesOnError: limitRetriesOnError,
 		userOrderProvider:   userOrderProvider,
+		retryProducer:       retryProducer,
 		logger:              logger,
 		ch:                  nil,
 		closed:              true,
@@ -55,6 +57,7 @@ type orderIDsProducer struct {
 	limitRetriesOnError uint
 	waitingOnError      time.Duration
 	userOrderProvider   provider.UserOrderProvider
+	retryProducer       Producer[string]
 	logger              *logrus.Logger
 	ch                  chan string
 	closed              bool
@@ -67,6 +70,7 @@ func (p *orderIDsProducer) Produce() <-chan string {
 	return p.ch
 }
 
+//nolint:gocognit
 func (p *orderIDsProducer) Start(ctx context.Context) {
 	p.mu.RLock()
 	isStarted := p.started
@@ -130,7 +134,7 @@ func (p *orderIDsProducer) Start(ctx context.Context) {
 				return
 			default:
 				p.logger.Debugf("'%s' producer select (limit: %v, offset: %v)", p.name, limit, offset)
-				values, err := p.selectOrderIDs(p.ctx, startTime, limit, &offset)
+				orderIDToExecuteAtMap, err := p.selectOrderIDs(p.ctx, startTime, limit, &offset)
 				if err != nil {
 					p.logger.WithError(err).Errorf("'%s' producer error on select", p.name)
 					retries++
@@ -142,13 +146,17 @@ func (p *orderIDsProducer) Start(ctx context.Context) {
 					continue
 				}
 
-				if len(values) == 0 {
-					p.logger.Debugf("'%s' producer finish on count values %d", p.name, len(values))
+				if len(orderIDToExecuteAtMap) == 0 {
+					p.logger.Debugf("'%s' producer finish on count values %d", p.name, len(orderIDToExecuteAtMap))
 					return
 				}
 
-				for _, v := range values {
-					p.ch <- v
+				for orderID, executeAt := range orderIDToExecuteAtMap {
+					if executeAt.Before(time.Now()) {
+						p.ch <- orderID
+					} else {
+						_ = p.retryProducer.Schedule(orderID, time.Until(executeAt))
+					}
 				}
 
 				if limit == nil {
@@ -156,7 +164,7 @@ func (p *orderIDsProducer) Start(ctx context.Context) {
 					return
 				}
 
-				offset += uint(len(values))
+				offset += uint(len(orderIDToExecuteAtMap))
 			}
 		}
 	}()
@@ -169,16 +177,16 @@ func (p *orderIDsProducer) Stop() bool {
 	return false
 }
 
-func (p *orderIDsProducer) selectOrderIDs(ctx context.Context, executeAt time.Time, limit, offset *uint) ([]string, error) {
+func (p *orderIDsProducer) selectOrderIDs(ctx context.Context, updatedAt time.Time, limit, offset *uint) (map[string]time.Time, error) {
 	spec := model.FindUserOrderSpecification{
 		Statuses:        []model.OrderStatus{model.OrderStatusNew, model.OrderStatusProcessing},
-		BeforeExecuteAt: executeAt,
+		BeforeUpdatedAt: updatedAt,
 		Limit:           limit,
 		Offset:          offset,
 	}
-	orderIDs, err := p.userOrderProvider.FindOrderIDs(ctx, spec)
+	orderIDToExecuteAtMap, err := p.userOrderProvider.FindOrderIDToExecuteAtMap(ctx, spec)
 	if err != nil {
 		return nil, err
 	}
-	return orderIDs, nil
+	return orderIDToExecuteAtMap, nil
 }

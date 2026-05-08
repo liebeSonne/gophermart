@@ -18,10 +18,14 @@ sequenceDiagram
         Note over Main,PDB: Запуск обработки заказов при старте сервиса
         activate PDB
             loop Пока есть данные а базе
-                %% Выборка заказов, с лимитом на один запрос, в не завершенном статусе с execute_at меньше даты старта
-                PDB->>+DB: SELECT orderID from user_order WHERE status IN (NEW, PROCESSING) AND execute_at <= <startTime> LIMIT <N>
+                %% Выборка заказов, с лимитом на один запрос, в не завершенном статусе с updated_at меньше даты старта (те которые были обновлены до старта сервиса)
+                PDB->>+DB: SELECT orderID from user_order WHERE status IN (NEW, PROCESSING) AND updated_at <= <startTime> LIMIT <N>
                 DB-->>-PDB: заказы пользователей (orderID)
-                PDB-->>JobsCh: Отправка задачи по заказу в канал (ch <- job)
+                alt если execute_at <= NOW()
+                    PDB-->>JobsCh: Отправка задачи по заказу в канал (ch <- job)
+                else
+                    PDB-->>PRetry: отложенная отправка на execute_at время
+                end
             end
         PDB-->>Main: Завершение
         deactivate PDB

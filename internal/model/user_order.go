@@ -30,7 +30,7 @@ type UserOrder struct {
 
 type FindUserOrderSpecification struct {
 	Statuses        []OrderStatus
-	BeforeExecuteAt time.Time
+	BeforeUpdatedAt time.Time
 	Limit           *uint
 	Offset          *uint
 }

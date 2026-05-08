@@ -41,6 +41,7 @@ flowchart TB
     PDB -.-> |select| DB
     %% Передача задач в канал
     PDB & PRequest --> |send| JobsChan
+    PDB -.-> |schedule| PRetry
     %% Передача задач из канала в обработчики
     JobsChan --> |receive| C1 & C2 & CN
     %% Обработка запросом в сервис
@@ -52,7 +53,7 @@ flowchart TB
     %% Обработка результатов - сохранение в БД
     RH1 & RHN -.-> |save| DB
     %% Повторный запуск при необходимости
-    RH1 & RHN --> |send| PRetry
+    RH1 & RHN --> |schedule| PRetry
     %% Отложенная передача в канал задач
     PRetry -.-> |send| JobsChan
 

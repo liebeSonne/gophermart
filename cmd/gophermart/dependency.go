@@ -48,7 +48,7 @@ func newDependencyContainer(
 
 	requestProducer := NewRequestProducer(logger)
 	retryProducer := NewRetryProducer(logger)
-	setupProducer := NewSetupProducer(logger, userOrderProvider)
+	setupProducer := NewSetupProducer(logger, userOrderProvider, retryProducer)
 	jobProducer := NewJobProducer(logger)
 
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))

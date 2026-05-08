@@ -64,6 +64,7 @@ func NewRetryProducer(
 func NewSetupProducer(
 	logger *logrus.Logger,
 	userOrderProvider provider.UserOrderProvider,
+	retryProducer async.Producer[string],
 ) async.OrderIDsProducer {
 	limit := uint(setupSelectLimit)
 	return async.NewOrderIDsProducer(
@@ -73,6 +74,7 @@ func NewSetupProducer(
 		setupLimitRetriesOnError,
 		setupWaitingOnError,
 		userOrderProvider,
+		retryProducer,
 		logger,
 	)
 }

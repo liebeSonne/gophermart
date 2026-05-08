@@ -6,6 +6,7 @@ package provider
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/liebeSonne/gophermart/internal/model"
@@ -107,24 +108,24 @@ func (_c *MockUserOrderProvider_FindByUserID_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
-// FindOrderIDs provides a mock function for the type MockUserOrderProvider
-func (_mock *MockUserOrderProvider) FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error) {
+// FindOrderIDToExecuteAtMap provides a mock function for the type MockUserOrderProvider
+func (_mock *MockUserOrderProvider) FindOrderIDToExecuteAtMap(ctx context.Context, spec model.FindUserOrderSpecification) (map[string]time.Time, error) {
 	ret := _mock.Called(ctx, spec)
 
 	if len(ret) == 0 {
-		panic("no return value specified for FindOrderIDs")
+		panic("no return value specified for FindOrderIDToExecuteAtMap")
 	}
 
-	var r0 []string
+	var r0 map[string]time.Time
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, model.FindUserOrderSpecification) ([]string, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.FindUserOrderSpecification) (map[string]time.Time, error)); ok {
 		return returnFunc(ctx, spec)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, model.FindUserOrderSpecification) []string); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, model.FindUserOrderSpecification) map[string]time.Time); ok {
 		r0 = returnFunc(ctx, spec)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).([]string)
+			r0 = ret.Get(0).(map[string]time.Time)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, model.FindUserOrderSpecification) error); ok {
@@ -135,19 +136,19 @@ func (_mock *MockUserOrderProvider) FindOrderIDs(ctx context.Context, spec model
 	return r0, r1
 }
 
-// MockUserOrderProvider_FindOrderIDs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindOrderIDs'
-type MockUserOrderProvider_FindOrderIDs_Call struct {
+// MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindOrderIDToExecuteAtMap'
+type MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call struct {
 	*mock.Call
 }
 
-// FindOrderIDs is a helper method to define mock.On call
+// FindOrderIDToExecuteAtMap is a helper method to define mock.On call
 //   - ctx context.Context
 //   - spec model.FindUserOrderSpecification
-func (_e *MockUserOrderProvider_Expecter) FindOrderIDs(ctx interface{}, spec interface{}) *MockUserOrderProvider_FindOrderIDs_Call {
-	return &MockUserOrderProvider_FindOrderIDs_Call{Call: _e.mock.On("FindOrderIDs", ctx, spec)}
+func (_e *MockUserOrderProvider_Expecter) FindOrderIDToExecuteAtMap(ctx interface{}, spec interface{}) *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call {
+	return &MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call{Call: _e.mock.On("FindOrderIDToExecuteAtMap", ctx, spec)}
 }
 
-func (_c *MockUserOrderProvider_FindOrderIDs_Call) Run(run func(ctx context.Context, spec model.FindUserOrderSpecification)) *MockUserOrderProvider_FindOrderIDs_Call {
+func (_c *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call) Run(run func(ctx context.Context, spec model.FindUserOrderSpecification)) *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -165,12 +166,12 @@ func (_c *MockUserOrderProvider_FindOrderIDs_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *MockUserOrderProvider_FindOrderIDs_Call) Return(strings []string, err error) *MockUserOrderProvider_FindOrderIDs_Call {
-	_c.Call.Return(strings, err)
+func (_c *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call) Return(stringToTime map[string]time.Time, err error) *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call {
+	_c.Call.Return(stringToTime, err)
 	return _c
 }
 
-func (_c *MockUserOrderProvider_FindOrderIDs_Call) RunAndReturn(run func(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error)) *MockUserOrderProvider_FindOrderIDs_Call {
+func (_c *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call) RunAndReturn(run func(ctx context.Context, spec model.FindUserOrderSpecification) (map[string]time.Time, error)) *MockUserOrderProvider_FindOrderIDToExecuteAtMap_Call {
 	_c.Call.Return(run)
 	return _c
 }
