@@ -24,6 +24,8 @@ type UserOrder struct {
 	Accrual   *decimal.Decimal `db:"accrual"`
 	CreatedAt time.Time        `db:"created_at"`
 	UpdatedAt time.Time        `db:"updated_at"`
+	ExecuteAt time.Time        `db:"execute_at"`
+	Retries   int              `db:"retries"`
 }
 
 type FindUserOrderSpecification struct {

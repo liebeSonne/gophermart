@@ -20,6 +20,7 @@ type UserOrderRepository interface {
 	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error)
 	FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error)
 	FindOrderIDs(ctx context.Context, spec model.FindUserOrderSpecification) ([]string, error)
+	FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error)
 }
 
 func NewUserOrderRepository(
@@ -40,23 +41,25 @@ func (r *userOrderRepository) NextID(_ context.Context) uuid.UUID {
 
 func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder) error {
 	const sqlQuery = `
-		INSERT INTO user_order (id, user_id, order_id, status, accrual, created_at, updated_at) VALUES %s
+		INSERT INTO user_order (id, user_id, order_id, status, accrual, created_at, updated_at, execute_at, retries) VALUES %s
 		ON CONFLICT (id)
 		DO UPDATE SET 
 			status = EXCLUDED.status,
 			accrual = EXCLUDED.accrual,
-		 	updated_at = EXCLUDED.updated_at
+		 	updated_at = EXCLUDED.updated_at,
+		 	execute_at = EXCLUDED.execute_at,
+		 	retries = EXCLUDED.retries
 	`
 
 	for chunkItems := range slices.Chunk(items, chunkSize) {
 		values := make([]string, 0, len(chunkItems))
-		args := make([]any, 0, len(chunkItems)*7)
+		args := make([]any, 0, len(chunkItems)*9)
 
 		for i, item := range chunkItems {
-			base := i * 7
-			params := fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6, base+7)
+			base := i * 9
+			params := fmt.Sprintf("($%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d,$%d)", base+1, base+2, base+3, base+4, base+5, base+6, base+7, base+8, base+9)
 			values = append(values, params)
-			args = append(args, item.ID, item.UserID, item.OrderID, item.Status, item.Accrual, item.CreatedAt, item.UpdatedAt)
+			args = append(args, item.ID, item.UserID, item.OrderID, item.Status, item.Accrual, item.CreatedAt, item.UpdatedAt, item.ExecuteAt, item.Retries)
 		}
 
 		query := fmt.Sprintf(sqlQuery, strings.Join(values, ","))
@@ -71,7 +74,7 @@ func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder
 
 func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error) {
 	const sqlQuery = `
-		SELECT id, user_id, order_id, status, accrual, created_at, updated_at
+		SELECT id, user_id, order_id, status, accrual, created_at, updated_at, execute_at, retries
 		FROM user_order 
 		WHERE user_id = $1 
 		ORDER BY created_at DESC 
@@ -89,7 +92,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 	for rows.Next() {
 		var item model.UserOrder
 		var orderStatus int
-		err := rows.Scan(&item.ID, &item.UserID, &item.OrderID, &orderStatus, &item.Accrual, &item.CreatedAt, &item.UpdatedAt)
+		err := rows.Scan(&item.ID, &item.UserID, &item.OrderID, &orderStatus, &item.Accrual, &item.CreatedAt, &item.UpdatedAt, &item.ExecuteAt, &item.Retries)
 		if err != nil {
 			return nil, fmt.Errorf("error on scan row: %w", err)
 		}
@@ -105,7 +108,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 
 func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error) {
 	const sqlQuery = `
-		SELECT id, user_id, order_id, status, accrual, created_at, updated_at
+		SELECT id, user_id, order_id, status, accrual, created_at, updated_at, execute_at, retries
 		FROM user_order 
 		WHERE order_id = $1 
 		LIMIT 1
@@ -115,7 +118,7 @@ func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string)
 	var orderStatus int
 
 	row := r.client.QueryRow(ctx, sqlQuery, orderID)
-	err := row.Scan(&item.ID, &item.UserID, &item.OrderID, &orderStatus, &item.Accrual, &item.CreatedAt, &item.UpdatedAt)
+	err := row.Scan(&item.ID, &item.UserID, &item.OrderID, &orderStatus, &item.Accrual, &item.CreatedAt, &item.UpdatedAt, &item.ExecuteAt, &item.Retries)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, nil
@@ -166,4 +169,25 @@ func (r *userOrderRepository) FindOrderIDs(ctx context.Context, spec model.FindU
 	}
 
 	return orderIDs, nil
+}
+
+func (r *userOrderRepository) FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error) {
+	const sqlQuery = `
+		SELECT user_id
+		FROM user_order 
+		WHERE order_id = $1 
+		LIMIT 1
+	`
+
+	var userID uuid.UUID
+	row := r.client.QueryRow(ctx, sqlQuery, orderID)
+	err := row.Scan(&userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error on scan row: %w", err)
+	}
+
+	return &userID, nil
 }

@@ -22,6 +22,9 @@ packages:
     interfaces:
       UserService: { }
       PasswordService: { }
+  github.com/liebeSonne/gophermart/internal/service/async:
+    interfaces:
+      Producer: {}
   github.com/liebeSonne/gophermart/internal/auth:
     interfaces:
       TokenService: { }

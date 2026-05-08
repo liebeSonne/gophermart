@@ -1,0 +1,218 @@
+package async
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
+	"github.com/shopspring/decimal"
+	"github.com/sirupsen/logrus"
+
+	"github.com/liebeSonne/gophermart/internal/adapter"
+	"github.com/liebeSonne/gophermart/internal/model"
+	"github.com/liebeSonne/gophermart/internal/provider"
+	"github.com/liebeSonne/gophermart/internal/repository/uow"
+	"github.com/liebeSonne/gophermart/internal/service"
+)
+
+func NewOrderIDResultWorker(
+	ctx context.Context,
+	retryDelay time.Duration,
+	tooManyRetriesDelay time.Duration,
+	retryProducer Producer[string],
+	uowFactory uow.UnitOfWorkFactory,
+	userOrderProvider provider.UserOrderProvider,
+	logger *logrus.Logger,
+) Worker[OrderIDWorkerResult, struct{}] {
+	return &orderIDResultWorker{
+		ctx:                 ctx,
+		retryDelay:          retryDelay,
+		tooManyRetriesDelay: tooManyRetriesDelay,
+		retryProducer:       retryProducer,
+		uowFactory:          uowFactory,
+		userOrderProvider:   userOrderProvider,
+		logger:              logger,
+	}
+}
+
+type orderIDResultWorker struct {
+	ctx                 context.Context
+	retryDelay          time.Duration
+	tooManyRetriesDelay time.Duration
+	retryProducer       Producer[string]
+	uowFactory          uow.UnitOfWorkFactory
+	userOrderProvider   provider.UserOrderProvider
+	logger              *logrus.Logger
+}
+
+func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct{}) {
+	doRetry := false
+	executeAtDelay := w.calculateExecuteAtDelay(result.Err)
+
+	defer func() {
+		if doRetry {
+			_ = w.retryProducer.Schedule(result.OrderID, executeAtDelay)
+		}
+	}()
+
+	if result.Err != nil {
+		doRetry = true
+		return
+	}
+
+	var newOrderStatusPtr *model.OrderStatus
+	newOrderStatusPtr, err := w.calculateNewOrderStatus(result.OrderID, result.Status)
+	if err != nil {
+		executeAtDelay = w.calculateExecuteAtDelay(err)
+		doRetry = true
+		return
+	}
+
+	userIDPtr, err := w.userOrderProvider.FindUserIDByOrderID(w.ctx, result.OrderID)
+	if err != nil {
+		doRetry = true
+		executeAtDelay = w.calculateExecuteAtDelay(err)
+		w.logger.WithError(err).Errorf("result worker failed to find user by order (%v)", result.OrderID)
+		return
+	}
+	if userIDPtr == nil {
+		w.logger.Warnf("result worker not found user by order (%v)", result.OrderID)
+		return
+	}
+
+	lockNames := []string{
+		service.MakeUserOrderLockName(result.OrderID),
+		service.MakeUserBalanceLockName(*userIDPtr),
+	}
+
+	err = w.uowFactory.ExecuteWithUnitOfWork(w.ctx, lockNames, func(repositoryProvider uow.RepositoryProvider) error {
+		doRetry, executeAtDelay, err = w.updateUserOrder(result.OrderID, newOrderStatusPtr, result.Accrual, repositoryProvider)
+		return err
+	})
+	if err != nil {
+		doRetry = true
+		executeAtDelay = w.calculateExecuteAtDelay(err)
+		w.logger.WithError(err).Errorf("result worker failed to handle user order (%v)", result.OrderID)
+		return
+	}
+}
+
+func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
+	if err == nil {
+		return w.retryDelay
+	}
+
+	var retryErr *adapter.ErrTooManyRetriesRetryAfter
+	if errors.As(err, &retryErr) && retryErr.RetryAfter > 0 {
+		return max(w.tooManyRetriesDelay, retryErr.RetryAfter)
+	}
+
+	if errors.Is(err, adapter.ErrTooManyRetries) {
+		return w.tooManyRetriesDelay
+	}
+
+	if errors.Is(err, ErrUnknownAccrualOrderStatus) {
+		return w.retryDelay
+	}
+
+	return w.retryDelay
+}
+
+func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *adapter.OrderStatus) (*model.OrderStatus, error) {
+	var newOrderStatusPtr *model.OrderStatus
+	if status != nil {
+		newStatus, err := convertOrderStatus(*status)
+		if err != nil {
+			return nil, fmt.Errorf("result worker failed to convert result order (%v) status (%v): %w", orderID, status, err)
+		}
+		newOrderStatusPtr = &newStatus
+	}
+	return newOrderStatusPtr, nil
+}
+
+func (w *orderIDResultWorker) isFinalStatus(status model.OrderStatus) bool {
+	switch status {
+	case model.OrderStatusInvalid, model.OrderStatusProcessed:
+		return true
+	default:
+		return false
+	}
+}
+
+func (w *orderIDResultWorker) updateUserOrder(
+	orderID string,
+	newStatus *model.OrderStatus,
+	newAccrual *decimal.Decimal,
+	repositoryProvider uow.RepositoryProvider,
+) (
+	doRetry bool,
+	executeAtDelay time.Duration,
+	err error,
+) {
+	orderRepository := repositoryProvider.UserOrderRepository()
+	balanceRepository := repositoryProvider.UserBalanceRepository()
+
+	var userOrderPtr *model.UserOrder
+	userOrderPtr, err = orderRepository.FindByOrderID(w.ctx, orderID)
+	if err != nil {
+		return doRetry, executeAtDelay, err
+	}
+	// Пропускаем обработку если запись не найдена
+	if userOrderPtr == nil {
+		w.logger.Warnf("result worker not found order (%v)", orderID)
+		return doRetry, executeAtDelay, err
+	}
+
+	userOrder := *userOrderPtr
+	// Не изменяем запись, если у неё уже финальный статус = обработанный
+	if userOrder.Status == model.OrderStatusProcessed {
+		w.logger.Warnf("result worker not found user order (%v)", orderID)
+		return doRetry, executeAtDelay, err
+	}
+
+	var changeBalance *decimal.Decimal
+	if newStatus != nil {
+		userOrder.Status = *newStatus
+		// Изменяем начисление только при новом финальном статусе = обработанный
+		if *newStatus == model.OrderStatusProcessed {
+			userOrder.Accrual = newAccrual
+			// Начисление в баланс только при переходе в завершенный статус = обработанный, с суммой начисления больше ноля
+			if userOrder.Accrual != nil && userOrder.Accrual.GreaterThan(decimal.Zero) {
+				changeBalance = userOrder.Accrual
+			}
+		}
+	}
+	isFinalStatus := w.isFinalStatus(userOrder.Status)
+	// Повторная попытка обработать если статус не финальный
+	if !isFinalStatus {
+		executeAtDelay = w.calculateExecuteAtDelay(nil)
+		userOrder.ExecuteAt = time.Now().Add(executeAtDelay)
+		doRetry = true
+	}
+	userOrder.Retries++
+
+	err = orderRepository.Store(w.ctx, []model.UserOrder{userOrder})
+	if err != nil {
+		err = fmt.Errorf("result worker failed to store result user order (%v): %w", orderID, err)
+		return doRetry, executeAtDelay, err
+	}
+
+	// Начисление в баланс
+	if changeBalance != nil {
+		var userBalance model.UserBalance
+		userBalance, err = balanceRepository.GetByUserID(w.ctx, userOrder.UserID)
+		if err != nil {
+			err = fmt.Errorf("result worker failed to get user  (%v) balance: %w", userOrder.UserID, err)
+			return doRetry, executeAtDelay, err
+		}
+		userBalance.Balance = userBalance.Balance.Add(*changeBalance)
+		err = balanceRepository.Store(w.ctx, userBalance)
+		if err != nil {
+			err = fmt.Errorf("result worker failed to store user (%v) balance: %w", userOrder.UserID, err)
+			return doRetry, executeAtDelay, err
+		}
+	}
+
+	return doRetry, executeAtDelay, err
+}

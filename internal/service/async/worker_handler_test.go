@@ -81,6 +81,7 @@ func TestWorkerHandler_Handle(t *testing.T) {
 
 			if tc.on.cancelCtx {
 				cancel()
+				time.Sleep(time.Millisecond * 10)
 			}
 
 			wh.Handle(inCh, outCh, tc.on.countWorkers)
