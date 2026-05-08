@@ -1,8 +1,9 @@
-package async
+package service
 
 import (
 	"context"
 	"errors"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 	"testing"
 	"time"
 
@@ -38,7 +39,7 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 	retryDelay3 := time.Second * 99
 
 	type on struct {
-		result              OrderIDWorkerResult
+		result              async.OrderIDWorkerResult
 		retryDelay          time.Duration
 		tooManyRetriesDelay time.Duration
 	}
@@ -79,126 +80,126 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 	}{
 		{
 			"error on find user id by order",
-			on{OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserIDErr: error1},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
 			"error on find order",
-			on{OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrderErr: error1},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
 			"error on store order",
-			on{OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew}, storeOrderErr: error1},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
 			"error on store user balance",
-			on{OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew}, getBalance: model.UserBalance{UserID: userID1, Balance: balance1}, storeBalanceErr: error1},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
 			"not found user id by order",
-			on{OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserID: nil},
 			want{schedule: nil},
 		},
 		{
 			"not found user order",
-			on{OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: nil},
 			want{schedule: nil},
 		},
 		{
 			"result error",
-			on{OrderIDWorkerResult{OrderID: orderID1, Err: error1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Err: error1}, retryDelay1, retryDelay2},
 			when{},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
 			"result error to many retries",
-			on{OrderIDWorkerResult{OrderID: orderID1, Err: adapter.ErrTooManyRetries}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Err: adapter.ErrTooManyRetries}, retryDelay1, retryDelay2},
 			when{},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay2}},
 		},
 		{
 			"result error to many retries with retry after more then default retry delay",
-			on{OrderIDWorkerResult{OrderID: orderID1, Err: adapter.NewErrTooManyRetriesRetryAfter(adapter.ErrTooManyRetries, retryDelay3)}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Err: adapter.NewErrTooManyRetriesRetryAfter(adapter.ErrTooManyRetries, retryDelay3)}, retryDelay1, retryDelay2},
 			when{},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay3}},
 		},
 		{
 			"result error to many retries with retry after less then default retry delay",
-			on{OrderIDWorkerResult{OrderID: orderID1, Err: adapter.NewErrTooManyRetriesRetryAfter(adapter.ErrTooManyRetries, retryDelay0)}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Err: adapter.NewErrTooManyRetriesRetryAfter(adapter.ErrTooManyRetries, retryDelay0)}, retryDelay1, retryDelay2},
 			when{},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay2}},
 		},
 		{
 			"error on calculate new status",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &unknownStatus}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &unknownStatus}, retryDelay1, retryDelay2},
 			when{},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}},
 		},
 		{
 			"on already processed status",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusProcessed}},
 			want{schedule: nil, storeOrder: nil},
 		},
 		{
 			"new registered status",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusNew, retries: 3, accrual: nil}},
 		},
 		{
 			"new registered status with accrual",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered, Accrual: &accrual1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered, Accrual: &accrual1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusNew, retries: 3, accrual: nil}},
 		},
 		{
 			"new processing status",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessing}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessing}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessing, retries: 3, accrual: nil}},
 		},
 		{
 			"new processing status with accrual",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessing, Accrual: &accrual1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessing, Accrual: &accrual1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: &schedule{orderID: orderID1, delay: retryDelay1}, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessing, retries: 3, accrual: nil}},
 		},
 		{
 			"new invalid status",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusInvalid}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusInvalid}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusInvalid, retries: 3, accrual: nil}},
 		},
 		{
 			"new invalid status with accrual",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusInvalid, Accrual: &accrual1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusInvalid, Accrual: &accrual1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusInvalid, retries: 3, accrual: nil}},
 		},
 		{
 			"new processed status",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil, UserID: userID1}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessed, retries: 3, accrual: nil}},
 		},
 		{
 			"new processed status with accrual",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &accrual1}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &accrual1}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}, getBalance: model.UserBalance{UserID: userID1, Balance: balance1}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessed, retries: 3, accrual: &accrual1}, storeBalance: &storeBalance{userID: userID1, balance: balance1.Add(accrual1)}},
 		}, {
 			"new processed status with accrual = 0",
-			on{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &decimal.Zero}, retryDelay1, retryDelay2},
+			on{async.OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &decimal.Zero}, retryDelay1, retryDelay2},
 			when{findUserID: &userID1, findOrder: &model.UserOrder{OrderID: orderID1, Status: model.OrderStatusNew, Retries: 2, Accrual: nil}},
 			want{schedule: nil, storeOrder: &storeOder{orderID: orderID1, status: model.OrderStatusProcessed, retries: 3, accrual: &decimal.Zero}, storeBalance: nil},
 		},
@@ -208,7 +209,7 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := t.Context()
 
-			retryProducer := NewMockProducer[string](t)
+			retryProducer := async.NewMockProducer[string](t)
 			if tc.want.schedule != nil {
 				retryProducer.EXPECT().Schedule(tc.want.schedule.orderID, tc.want.schedule.delay).Return(nil).Once()
 			}

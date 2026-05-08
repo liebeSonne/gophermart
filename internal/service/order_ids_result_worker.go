@@ -1,4 +1,4 @@
-package async
+package service
 
 import (
 	"context"
@@ -13,18 +13,18 @@ import (
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/provider"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
-	"github.com/liebeSonne/gophermart/internal/service"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 func NewOrderIDResultWorker(
 	ctx context.Context,
 	retryDelay time.Duration,
 	tooManyRetriesDelay time.Duration,
-	retryProducer Producer[string],
+	retryProducer async.Producer[string],
 	uowFactory uow.UnitOfWorkFactory,
 	userOrderProvider provider.UserOrderProvider,
 	logger *logrus.Logger,
-) Worker[OrderIDWorkerResult, struct{}] {
+) async.Worker[async.OrderIDWorkerResult, struct{}] {
 	return &orderIDResultWorker{
 		ctx:                 ctx,
 		retryDelay:          retryDelay,
@@ -40,13 +40,13 @@ type orderIDResultWorker struct {
 	ctx                 context.Context
 	retryDelay          time.Duration
 	tooManyRetriesDelay time.Duration
-	retryProducer       Producer[string]
+	retryProducer       async.Producer[string]
 	uowFactory          uow.UnitOfWorkFactory
 	userOrderProvider   provider.UserOrderProvider
 	logger              *logrus.Logger
 }
 
-func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct{}) {
+func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- struct{}) {
 	doRetry := false
 	executeAtDelay := w.calculateExecuteAtDelay(result.Err)
 
@@ -82,8 +82,8 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 	}
 
 	lockNames := []string{
-		service.MakeUserOrderLockName(result.OrderID),
-		service.MakeUserBalanceLockName(*userIDPtr),
+		MakeUserOrderLockName(result.OrderID),
+		MakeUserBalanceLockName(*userIDPtr),
 	}
 
 	err = w.uowFactory.ExecuteWithUnitOfWork(w.ctx, lockNames, func(repositoryProvider uow.RepositoryProvider) error {
@@ -122,7 +122,7 @@ func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
 func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *adapter.OrderStatus) (*model.OrderStatus, error) {
 	var newOrderStatusPtr *model.OrderStatus
 	if status != nil {
-		newStatus, err := convertOrderStatus(*status)
+		newStatus, err := ConvertOrderStatus(*status)
 		if err != nil {
 			return nil, fmt.Errorf("result worker failed to convert result order (%v) status (%v): %w", orderID, status, err)
 		}

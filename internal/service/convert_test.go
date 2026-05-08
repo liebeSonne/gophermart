@@ -1,4 +1,4 @@
-package async
+package service
 
 import (
 	"testing"
@@ -53,7 +53,7 @@ func Test_convertOrderStatus(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			status, err := convertOrderStatus(tc.on.status)
+			status, err := ConvertOrderStatus(tc.on.status)
 
 			if tc.want.err != nil {
 				require.Error(t, err)

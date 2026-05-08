@@ -1,4 +1,4 @@
-package async
+package service
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 
 var ErrUnknownAccrualOrderStatus = errors.New("unknown accrual order status")
 
-func convertOrderStatus(status adapter.OrderStatus) (model.OrderStatus, error) {
+func ConvertOrderStatus(status adapter.OrderStatus) (model.OrderStatus, error) {
 	switch status {
 	case adapter.OrderStatusRegistered:
 		return model.OrderStatusNew, nil
