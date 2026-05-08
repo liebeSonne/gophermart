@@ -30,6 +30,7 @@ type dependencyContainer struct {
 
 	RequestProducer async.Producer[string]
 	RetryProducer   async.Producer[string]
+	SetupProducer   async.OrderIDsProducer
 	JobProducer     async.Producer[string]
 }
 
@@ -48,7 +49,10 @@ func newDependencyContainer(
 
 	accrualAdapter := adapter.NewAccrualAdapter(connection.AccrualClient)
 
-	requestProducer, retryProducer, jobProducer := runProducers(ctx, logger, userOrderProvider)
+	requestProducer := NewRequestProducer(ctx, logger)
+	retryProducer := NewRetryProducer(ctx, logger)
+	setupProducer := NewSetupProducer(ctx, logger, userOrderProvider)
+	jobProducer := NewJobProducer(ctx, logger)
 
 	passwordService := service.NewPasswordService([]byte(cfg.PasswordSecretKey))
 	userService := service.NewUserService(uowFactory, passwordService, userProvider)
@@ -71,6 +75,7 @@ func newDependencyContainer(
 		UOWFactory:                   uowFactory,
 		RequestProducer:              requestProducer,
 		RetryProducer:                retryProducer,
+		SetupProducer:                setupProducer,
 		JobProducer:                  jobProducer,
 	}, nil
 }

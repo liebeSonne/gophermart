@@ -30,6 +30,7 @@ func runApp(
 		return err
 	}
 
+	runProducers(ctx, dependency)
 	runWorkers(ctx, logger, dependency)
 
 	router, err := initRouter(dependency, logger)

@@ -107,27 +107,31 @@ func NewResultHandler(
 	return async.NewWorkerHandler[async.OrderIDWorkerResult, struct{}](ctx, resultHandlerName, worker.Handle, logger)
 }
 
-func runProducers(
+func NewJobProducer(
 	ctx context.Context,
 	logger *logrus.Logger,
-	userOrderProvider provider.UserOrderProvider,
+) async.Producer[string] {
+	return async.NewProducer[string](ctx, jobProducerName, jobProducerChannelSize, logger)
+}
+
+func runProducers(
+	ctx context.Context,
+	dependency *dependencyContainer,
 ) (
-	requestProducer async.Producer[string],
-	retryProducer async.Producer[string],
 	jobProducer async.Producer[string],
 ) {
 	// Поставщик задач из http запросов
-	requestProducer = NewRequestProducer(ctx, logger)
+	requestProducer := dependency.RequestProducer
 	requestProducer.Start()
 	requestCh := requestProducer.Produce()
 
 	// Поставщик задач из повторных попыток
-	retryProducer = NewRetryProducer(ctx, logger)
+	retryProducer := dependency.RetryProducer
 	retryProducer.Start()
 	retryCh := retryProducer.Produce()
 
 	// Поставщик задач из БД
-	setupProducer := NewSetupProducer(ctx, logger, userOrderProvider)
+	setupProducer := dependency.SetupProducer
 	setupProducer.Start()
 	setupCh := setupProducer.Produce()
 
@@ -135,10 +139,10 @@ func runProducers(
 	jobCh := async.FanIn(ctx, requestCh, retryCh, setupCh)
 
 	// Формируем из общего канала задач одного поставщика, для удобства
-	jobProducer = async.NewProducer[string](ctx, jobProducerName, jobProducerChannelSize, logger)
+	jobProducer = dependency.JobProducer
 	jobProducer.Setup(jobCh)
 
-	return requestProducer, retryProducer, jobProducer
+	return jobProducer
 }
 
 func runWorkers(
