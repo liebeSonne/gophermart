@@ -11,7 +11,11 @@ import (
 type CancelFunc func() bool
 
 type Producer[T any] interface {
+	Start()
+	Stop() bool
+
 	Produce() <-chan T
+
 	Add(value T)
 	Schedule(value T, delay time.Duration) CancelFunc
 	Setup(inputCh <-chan T) CancelFunc
@@ -23,41 +27,94 @@ func NewProducer[T any](
 	channelSize uint,
 	logger *logrus.Logger,
 ) Producer[T] {
-	p := &producer[T]{
-		ctx:    ctx,
-		name:   name,
-		ch:     make(chan T, channelSize),
-		logger: logger,
+	return &producer[T]{
+		ctx:         ctx,
+		name:        name,
+		channelSize: channelSize,
+		ch:          nil,
+		closed:      true,
+		started:     false,
+		logger:      logger,
 	}
+}
+
+type producer[T any] struct {
+	ctx         context.Context
+	name        string
+	channelSize uint
+	logger      *logrus.Logger
+	ch          chan T
+	closed      bool
+	started     bool
+	cancel      CancelFunc
+	mu          sync.RWMutex
+}
+
+func (p *producer[T]) Start() {
+	p.mu.RLock()
+	isStarted := p.started
+	p.mu.RUnlock()
+
+	if isStarted {
+		return
+	}
+
+	p.mu.Lock()
 
 	startTime := time.Now()
 	p.logger.Infof("'%s' producer started at %v", p.name, startTime)
+
+	p.ch = make(chan T, p.channelSize)
+	p.closed = false
+
+	doneCh := make(chan struct{})
+	var once sync.Once
+
+	cancel := func() bool {
+		stopped := false
+		once.Do(func() {
+			close(doneCh)
+			stopped = true
+		})
+		return stopped
+	}
+
+	p.cancel = cancel
+	p.started = true
+
+	p.mu.Unlock()
 
 	go func() {
 		defer func() {
 			p.mu.Lock()
 			close(p.ch)
 			p.closed = true
+			p.started = false
+			p.cancel = nil
 			p.mu.Unlock()
 		}()
 		defer func() {
 			p.logger.Infof("'%s' producer finished at %v (%v)", p.name, time.Now(), time.Since(startTime))
 		}()
 
-		<-ctx.Done()
-		p.logger.Infof("'%s' producer closed on context closed", p.name)
+		for {
+			select {
+			case <-p.ctx.Done():
+				p.logger.Infof("'%s' producer finished on context closed", p.name)
+				return
+			case <-doneCh:
+				p.logger.Infof("'%s' producer finished on cancel", p.name)
+				return
+			}
+		}
 	}()
-
-	return p
 }
 
-type producer[T any] struct {
-	ctx    context.Context
-	name   string
-	logger *logrus.Logger
-	ch     chan T
-	closed bool
-	mu     sync.RWMutex
+func (p *producer[T]) Stop() bool {
+	if p.cancel != nil {
+		return p.cancel()
+	}
+	return false
 }
 
 func (p *producer[T]) Produce() <-chan T {
@@ -102,6 +159,14 @@ func (p *producer[T]) Schedule(value T, delay time.Duration) CancelFunc {
 }
 
 func (p *producer[T]) Setup(inputCh <-chan T) CancelFunc {
+	p.mu.RLock()
+	isStarted := p.started
+	p.mu.RUnlock()
+
+	if !isStarted {
+		return nil
+	}
+
 	startTime := time.Now()
 
 	p.logger.Infof("'%s' producer setup started at %v", p.name, startTime)

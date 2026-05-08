@@ -234,3 +234,80 @@ func (_c *MockProducer_Setup_Call[T]) RunAndReturn(run func(inputCh <-chan T) Ca
 	_c.Call.Return(run)
 	return _c
 }
+
+// Start provides a mock function for the type MockProducer
+func (_mock *MockProducer[T]) Start() {
+	_mock.Called()
+	return
+}
+
+// MockProducer_Start_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Start'
+type MockProducer_Start_Call[T any] struct {
+	*mock.Call
+}
+
+// Start is a helper method to define mock.On call
+func (_e *MockProducer_Expecter[T]) Start() *MockProducer_Start_Call[T] {
+	return &MockProducer_Start_Call[T]{Call: _e.mock.On("Start")}
+}
+
+func (_c *MockProducer_Start_Call[T]) Run(run func()) *MockProducer_Start_Call[T] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProducer_Start_Call[T]) Return() *MockProducer_Start_Call[T] {
+	_c.Call.Return()
+	return _c
+}
+
+func (_c *MockProducer_Start_Call[T]) RunAndReturn(run func()) *MockProducer_Start_Call[T] {
+	_c.Run(run)
+	return _c
+}
+
+// Stop provides a mock function for the type MockProducer
+func (_mock *MockProducer[T]) Stop() bool {
+	ret := _mock.Called()
+
+	if len(ret) == 0 {
+		panic("no return value specified for Stop")
+	}
+
+	var r0 bool
+	if returnFunc, ok := ret.Get(0).(func() bool); ok {
+		r0 = returnFunc()
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	return r0
+}
+
+// MockProducer_Stop_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Stop'
+type MockProducer_Stop_Call[T any] struct {
+	*mock.Call
+}
+
+// Stop is a helper method to define mock.On call
+func (_e *MockProducer_Expecter[T]) Stop() *MockProducer_Stop_Call[T] {
+	return &MockProducer_Stop_Call[T]{Call: _e.mock.On("Stop")}
+}
+
+func (_c *MockProducer_Stop_Call[T]) Run(run func()) *MockProducer_Stop_Call[T] {
+	_c.Call.Run(func(args mock.Arguments) {
+		run()
+	})
+	return _c
+}
+
+func (_c *MockProducer_Stop_Call[T]) Return(b bool) *MockProducer_Stop_Call[T] {
+	_c.Call.Return(b)
+	return _c
+}
+
+func (_c *MockProducer_Stop_Call[T]) RunAndReturn(run func() bool) *MockProducer_Stop_Call[T] {
+	_c.Call.Return(run)
+	return _c
+}

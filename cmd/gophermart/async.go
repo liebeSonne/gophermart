@@ -117,10 +117,12 @@ func runProducers(
 ) {
 	// Поставщик задач из http запросов
 	requestProducer = NewRequestProducer(ctx, logger)
+	requestProducer.Start()
 	requestCh := requestProducer.Produce()
 
 	// Поставщик задач из повторных попыток
 	retryProducer = NewRetryProducer(ctx, logger)
+	retryProducer.Start()
 	retryCh := retryProducer.Produce()
 
 	// Поставщик задач из БД
