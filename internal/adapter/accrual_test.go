@@ -16,8 +16,8 @@ import (
 func TestAccrualAdapter_GetOrders(t *testing.T) {
 	orderID1 := "123"
 	error1 := errors.New("error 1")
-	accrual1 := float32(10.5)
-	accrualDecimal1 := decimal.NewFromFloat32(accrual1)
+	accrual1 := float64(10.5)
+	accrualDecimal1 := decimal.NewFromFloat(accrual1)
 	retryAfterStr1 := "60"
 	retryAfterDuration1 := time.Duration(60) * time.Second
 

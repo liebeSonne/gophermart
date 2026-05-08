@@ -216,7 +216,7 @@ components:
           description: статус обработки расчётов
         accrual:
           type: number
-          format: float
+          format: double
           minimum: 0
           example: "100.50"
           description: начисленные баллы, при отсутствии начисления (status не равен PROCESSED) - поле отсутствует в ответе
@@ -233,12 +233,12 @@ components:
       properties:
         current:
           type: number
-          format: float
+          format: double
           example: "500.5"
           description: текущая сумма баллов лояльности
         withdrawn:
           type: number
-          format: float
+          format: double
           minimum: 0
           example: "42.0"
           description: сумма использованных за весь период регистрации баллов
@@ -252,7 +252,7 @@ components:
           $ref: '#/components/schemas/OrderId'
         sum:
           type: number
-          format: float
+          format: double
           minimum: 0
           example: "751.0"
     GetUserWithdrawalsResponse:
@@ -270,7 +270,7 @@ components:
           $ref: '#/components/schemas/OrderId'
         sum:
           type: number
-          format: float
+          format: double
           minimum: 0
           example: "500.0"
         processed_at:

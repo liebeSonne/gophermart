@@ -276,7 +276,7 @@ func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
 	input := service.AddWithdrawnInput{
 		UserID:  userID,
 		OrderID: withdrawnBalanceRequest.Order,
-		Amount:  decimal.NewFromFloat32(withdrawnBalanceRequest.Sum),
+		Amount:  decimal.NewFromFloat(withdrawnBalanceRequest.Sum),
 	}
 
 	err = s.userBalanceService.AddWithdrawn(ctx, input)

@@ -25,12 +25,12 @@ func convertUserOrderStatusToAPI(status model.OrderStatus) (server.UserOrderData
 	return result, nil
 }
 
-func convertDecimalToFloat32(amount decimal.Decimal) (float32, error) {
+func convertDecimalToFloat64(amount decimal.Decimal) (float64, error) {
 	accrualFloat64, extract := amount.Float64()
 	if !extract {
 		return 0, fmt.Errorf("error on extract float64 from decimal amount (%v)", amount)
 	}
-	return float32(accrualFloat64), nil
+	return accrualFloat64, nil
 }
 
 func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
@@ -38,9 +38,9 @@ func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
 	if err != nil {
 		return server.UserOrderData{}, err
 	}
-	var accrualPtr *float32
+	var accrualPtr *float64
 	if item.Accrual != nil {
-		accrual, err := convertDecimalToFloat32(*item.Accrual)
+		accrual, err := convertDecimalToFloat64(*item.Accrual)
 		if err != nil {
 			return server.UserOrderData{}, fmt.Errorf("error on converting accrual value (%v): %w", *item.Accrual, err)
 		}
@@ -68,11 +68,11 @@ func convertUserOrdersToAPI(items []model.UserOrder) ([]server.UserOrderData, er
 }
 
 func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceResponse, error) {
-	balance, err := convertDecimalToFloat32(item.Balance)
+	balance, err := convertDecimalToFloat64(item.Balance)
 	if err != nil {
 		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting balance value (%v): %w", item.Balance, err)
 	}
-	withdrawnSum, err := convertDecimalToFloat32(item.WithdrawnSum)
+	withdrawnSum, err := convertDecimalToFloat64(item.WithdrawnSum)
 	if err != nil {
 		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting withdrawn sum value (%v): %w", item.WithdrawnSum, err)
 	}
@@ -84,7 +84,7 @@ func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceRespo
 }
 
 func convertUserBalanceWithdrawnToAPI(item model.UserBalanceWithdrawn) (server.WithdrawalData, error) {
-	amount, err := convertDecimalToFloat32(item.Amount)
+	amount, err := convertDecimalToFloat64(item.Amount)
 	if err != nil {
 		return server.WithdrawalData{}, fmt.Errorf("error on converting amount value (%v): %w", item.Amount, err)
 	}

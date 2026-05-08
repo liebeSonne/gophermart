@@ -79,7 +79,7 @@ func (a *accrualAdapter) convertOrderData(orderData client.GetOrdersResponseData
 
 	var accrualPtr *decimal.Decimal
 	if orderData.Accrual != nil {
-		accrual := decimal.NewFromFloat32(*orderData.Accrual)
+		accrual := decimal.NewFromFloat(*orderData.Accrual)
 		accrualPtr = &accrual
 	}
 

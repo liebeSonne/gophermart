@@ -101,7 +101,7 @@ components:
           description: статус расчёта начисления
         accrual:
           type: number
-          format: float
+          format: double
           example: "10.05"
           description: рассчитанные баллы к начислению, при отсутствии начисления (status не равен PROCESSED)— поле отсутствует в ответе
     PostOrdersRequestData:
@@ -126,7 +126,7 @@ components:
       properties:
         price:
           type: number
-          format: float
+          format: double
           description: цена оплаченного товара
         description:
           type: string
@@ -144,7 +144,7 @@ components:
           description: ключ поиска (проверяется на наличие в строке наименования товара), не может быть пустым
         reward:
           type: number
-          format: float
+          format: double
           description: размер вознаграждения
         reward_type:
           type: string
