@@ -27,8 +27,10 @@ packages:
   github.com/liebeSonne/gophermart/internal/adapter:
     interfaces:
       AccrualClientWithResponsesInterface: {}
-  github.com/liebeSonne/gophermart/internal/repository/database:
+  github.com/liebeSonne/gophermart/internal/repository:
     interfaces:
       ContextClient: {}
+  github.com/liebeSonne/gophermart/internal/repository/database:
+    interfaces:
       Rows: {}
       Row: {}
