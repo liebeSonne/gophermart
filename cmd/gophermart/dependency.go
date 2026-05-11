@@ -1,6 +1,8 @@
 package main
 
 import (
+	"time"
+
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/adapter"
@@ -51,6 +53,7 @@ func newDependencyContainer(
 	userBalanceWithDrawnRepository := repository.NewUserBalanceWithdrawnRepository(connection.DBClient.Pool())
 
 	accrualService := adapter.NewAccrualService(connection.AccrualClient)
+	accrualService = service.NewRetryMiddlewareAccrualService(accrualService, 3, time.Second*1)
 
 	requestProducer := NewRequestProducer(logger)
 	retryProducer := NewRetryProducer(logger)
