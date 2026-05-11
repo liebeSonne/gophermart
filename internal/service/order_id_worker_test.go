@@ -1,4 +1,4 @@
-package async
+package service
 
 import (
 	"context"
@@ -11,17 +11,15 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-
-	"github.com/liebeSonne/gophermart/internal/adapter"
 )
 
 func TestOrderIDWorker_Handle(t *testing.T) {
 	error1 := errors.New("errro 1")
 	orderID1 := "123"
-	statusRegistered := adapter.OrderStatusRegistered
-	statusProcessing := adapter.OrderStatusProcessing
-	statusInvalid := adapter.OrderStatusInvalid
-	statusProcessed := adapter.OrderStatusProcessed
+	statusRegistered := OrderStatusRegistered
+	statusProcessing := OrderStatusProcessing
+	statusInvalid := OrderStatusInvalid
+	statusProcessed := OrderStatusProcessed
 	accrual1 := decimal.NewFromFloat(10.5)
 
 	type on struct {
@@ -29,7 +27,7 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 		waiting time.Duration
 	}
 	type when struct {
-		getOrder    adapter.OrderData
+		getOrder    OrderData
 		getOrderErr error
 	}
 	type want struct {
@@ -50,25 +48,25 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 		{
 			"status registered",
 			on{orderID1, time.Millisecond * 200},
-			when{getOrder: adapter.OrderData{OrderID: orderID1, Status: statusRegistered, Accrual: nil}},
+			when{getOrder: OrderData{OrderID: orderID1, Status: statusRegistered, Accrual: nil}},
 			want{OrderIDWorkerResult{OrderID: orderID1, Status: &statusRegistered, Accrual: nil, Err: nil}},
 		},
 		{
 			"status processing",
 			on{orderID1, time.Millisecond * 200},
-			when{getOrder: adapter.OrderData{OrderID: orderID1, Status: statusProcessing, Accrual: nil}},
+			when{getOrder: OrderData{OrderID: orderID1, Status: statusProcessing, Accrual: nil}},
 			want{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessing, Accrual: nil, Err: nil}},
 		},
 		{
 			"status invalid",
 			on{orderID1, time.Millisecond * 200},
-			when{getOrder: adapter.OrderData{OrderID: orderID1, Status: statusInvalid, Accrual: nil}},
+			when{getOrder: OrderData{OrderID: orderID1, Status: statusInvalid, Accrual: nil}},
 			want{OrderIDWorkerResult{OrderID: orderID1, Status: &statusInvalid, Accrual: nil, Err: nil}},
 		},
 		{
 			"status processed",
 			on{orderID1, time.Millisecond * 200},
-			when{getOrder: adapter.OrderData{OrderID: orderID1, Status: statusProcessed, Accrual: &accrual1}},
+			when{getOrder: OrderData{OrderID: orderID1, Status: statusProcessed, Accrual: &accrual1}},
 			want{OrderIDWorkerResult{OrderID: orderID1, Status: &statusProcessed, Accrual: &accrual1, Err: nil}},
 		},
 	}
@@ -78,12 +76,12 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			accrualAdapter := adapter.NewMockAccrualAdapter(t)
-			accrualAdapter.EXPECT().GetOrders(mock.Anything, tc.on.orderID).Return(tc.when.getOrder, tc.when.getOrderErr).Once()
+			accrualService := NewMockAccrualService(t)
+			accrualService.EXPECT().GetOrders(mock.Anything, tc.on.orderID).Return(tc.when.getOrder, tc.when.getOrderErr).Once()
 
 			l, _ := test.NewNullLogger()
 
-			w := NewOrderIDWorker(ctx, "name", accrualAdapter, l)
+			w := NewOrderIDWorker(ctx, "name", accrualService, l)
 
 			outCh := make(chan OrderIDWorkerResult, 1)
 

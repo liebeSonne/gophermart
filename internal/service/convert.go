@@ -4,21 +4,20 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/model"
 )
 
 var ErrUnknownAccrualOrderStatus = errors.New("unknown accrual order status")
 
-func ConvertOrderStatus(status adapter.OrderStatus) (model.OrderStatus, error) {
+func ConvertOrderStatus(status OrderStatus) (model.OrderStatus, error) {
 	switch status {
-	case adapter.OrderStatusRegistered:
+	case OrderStatusRegistered:
 		return model.OrderStatusNew, nil
-	case adapter.OrderStatusProcessing:
+	case OrderStatusProcessing:
 		return model.OrderStatusProcessing, nil
-	case adapter.OrderStatusInvalid:
+	case OrderStatusInvalid:
 		return model.OrderStatusInvalid, nil
-	case adapter.OrderStatusProcessed:
+	case OrderStatusProcessed:
 		return model.OrderStatusProcessed, nil
 	default:
 		return -1, fmt.Errorf("%w: %d", ErrUnknownAccrualOrderStatus, status)

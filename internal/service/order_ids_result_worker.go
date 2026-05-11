@@ -9,7 +9,6 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
-	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/provider"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
@@ -29,7 +28,7 @@ func NewOrderIDResultWorker(
 	uowFactory uow.UnitOfWorkFactory,
 	userOrderProvider provider.UserOrderProvider,
 	logger *logrus.Logger,
-) async.Worker[async.OrderIDWorkerResult, struct{}] {
+) async.Worker[OrderIDWorkerResult, struct{}] {
 	return &orderIDResultWorker{
 		ctx:                 ctx,
 		name:                name,
@@ -53,7 +52,7 @@ type orderIDResultWorker struct {
 	logger              *logrus.Logger
 }
 
-func (w *orderIDResultWorker) Handle(result async.OrderIDWorkerResult, _ chan<- struct{}) {
+func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct{}) {
 	doRetry := false
 	executeAtDelay := w.calculateExecuteAtDelay(result.Err)
 
@@ -115,12 +114,12 @@ func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
 		return w.retryDelay
 	}
 
-	var retryErr *adapter.ErrTooManyRetriesRetryAfter
+	var retryErr *ErrTooManyRetriesRetryAfter
 	if errors.As(err, &retryErr) && retryErr.RetryAfter > 0 {
 		return max(w.tooManyRetriesDelay, retryErr.RetryAfter)
 	}
 
-	if errors.Is(err, adapter.ErrTooManyRetries) {
+	if errors.Is(err, ErrTooManyRetries) {
 		return w.tooManyRetriesDelay
 	}
 
@@ -131,7 +130,7 @@ func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
 	return w.retryDelay
 }
 
-func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *adapter.OrderStatus) (*model.OrderStatus, error) {
+func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *OrderStatus) (*model.OrderStatus, error) {
 	var newOrderStatusPtr *model.OrderStatus
 	if status != nil {
 		newStatus, err := ConvertOrderStatus(*status)

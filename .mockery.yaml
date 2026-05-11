@@ -22,6 +22,7 @@ packages:
     interfaces:
       UserService: { }
       PasswordService: { }
+      AccrualService: {}
   github.com/liebeSonne/gophermart/internal/service/async:
     interfaces:
       Producer: {}
@@ -34,4 +35,3 @@ packages:
   github.com/liebeSonne/gophermart/internal/adapter:
     interfaces:
       AccrualClientWithResponsesInterface: {}
-      AccrualAdapter: {}

@@ -1,6 +1,10 @@
-package adapter
+package service
 
-import "github.com/shopspring/decimal"
+import (
+	"context"
+
+	"github.com/shopspring/decimal"
+)
 
 type OrderStatus int
 
@@ -15,4 +19,8 @@ type OrderData struct {
 	OrderID string
 	Status  OrderStatus
 	Accrual *decimal.Decimal
+}
+
+type AccrualService interface {
+	GetOrders(ctx context.Context, orderID string) (OrderData, error)
 }

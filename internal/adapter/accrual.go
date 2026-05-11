@@ -10,15 +10,12 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/liebeSonne/gophermart/api/client"
+	"github.com/liebeSonne/gophermart/internal/service"
 )
 
-type AccrualAdapter interface {
-	GetOrders(ctx context.Context, orderID string) (OrderData, error)
-}
-
-func NewAccrualAdapter(
+func NewAccrualService(
 	apiClient client.ClientWithResponsesInterface,
-) AccrualAdapter {
+) service.AccrualService {
 	return &accrualAdapter{
 		client: apiClient,
 	}
@@ -28,10 +25,10 @@ type accrualAdapter struct {
 	client client.ClientWithResponsesInterface
 }
 
-func (a *accrualAdapter) GetOrders(ctx context.Context, orderID string) (OrderData, error) {
+func (a *accrualAdapter) GetOrders(ctx context.Context, orderID string) (service.OrderData, error) {
 	resp, err := a.client.GetOrdersWithResponse(ctx, orderID)
 	if err != nil {
-		return OrderData{}, fmt.Errorf("unable to get order: %w", err)
+		return service.OrderData{}, fmt.Errorf("unable to get order: %w", err)
 	}
 
 	statusCode := resp.StatusCode()
@@ -39,42 +36,42 @@ func (a *accrualAdapter) GetOrders(ctx context.Context, orderID string) (OrderDa
 	case http.StatusOK:
 		orderData, err := a.convertOrderData(*resp.JSON200)
 		if err != nil {
-			return OrderData{}, fmt.Errorf("unable to convert order data: %w", err)
+			return service.OrderData{}, fmt.Errorf("unable to convert order data: %w", err)
 		}
 		return orderData, nil
 	case http.StatusNoContent:
-		return OrderData{}, ErrOrderNotFound
+		return service.OrderData{}, service.ErrOrderNotFound
 	case http.StatusTooManyRequests:
 		retryAfter := resp.HTTPResponse.Header.Get("Retry-After")
 		if retryAfter != "" {
 			seconds, err := strconv.Atoi(retryAfter)
 			if err == nil {
 				retryAfterDuration := time.Duration(seconds) * time.Second
-				return OrderData{}, NewErrTooManyRetriesRetryAfter(ErrTooManyRetries, retryAfterDuration)
+				return service.OrderData{}, service.NewErrTooManyRetriesRetryAfter(service.ErrTooManyRetries, retryAfterDuration)
 			}
 		}
-		return OrderData{}, ErrTooManyRetries
+		return service.OrderData{}, service.ErrTooManyRetries
 	case http.StatusInternalServerError:
-		return OrderData{}, ErrServerError
+		return service.OrderData{}, service.ErrServerError
 	default:
-		return OrderData{}, fmt.Errorf("unexpected status code (%d): %w", statusCode, ErrUnexpectedError)
+		return service.OrderData{}, fmt.Errorf("unexpected status code (%d): %w", statusCode, service.ErrUnexpectedError)
 	}
 }
 
-func (a *accrualAdapter) convertOrderData(orderData client.GetOrdersResponseData) (OrderData, error) {
-	var status OrderStatus
+func (a *accrualAdapter) convertOrderData(orderData client.GetOrdersResponseData) (service.OrderData, error) {
+	var status service.OrderStatus
 
 	switch orderData.Status {
 	case client.REGISTERED:
-		status = OrderStatusRegistered
+		status = service.OrderStatusRegistered
 	case client.PROCESSING:
-		status = OrderStatusProcessing
+		status = service.OrderStatusProcessing
 	case client.INVALID:
-		status = OrderStatusInvalid
+		status = service.OrderStatusInvalid
 	case client.PROCESSED:
-		status = OrderStatusProcessed
+		status = service.OrderStatusProcessed
 	default:
-		return OrderData{}, fmt.Errorf("%w: %s", ErrUnknownOrderStatus, orderData.Status)
+		return service.OrderData{}, fmt.Errorf("%w: %s", service.ErrUnknownOrderStatus, orderData.Status)
 	}
 
 	var accrualPtr *decimal.Decimal
@@ -83,7 +80,7 @@ func (a *accrualAdapter) convertOrderData(orderData client.GetOrdersResponseData
 		accrualPtr = &accrual
 	}
 
-	return OrderData{
+	return service.OrderData{
 		OrderID: orderData.Order,
 		Status:  status,
 		Accrual: accrualPtr,

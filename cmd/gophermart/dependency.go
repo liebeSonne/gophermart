@@ -23,7 +23,7 @@ type dependencyContainer struct {
 	UserBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider
 	TokenService                 auth.TokenService
 	CookieService                cookie.Service
-	AccrualAdapter               adapter.AccrualAdapter
+	AccrualService               service.AccrualService
 	UOWFactory                   uow.UnitOfWorkFactory
 
 	RequestProducer async.Producer[string]
@@ -44,7 +44,7 @@ func newDependencyContainer(
 	userBalanceProvider := repository.NewUserBalanceRepository(connection.DBClient.Pool())
 	userBalanceWithDrawnProvider := repository.NewUserBalanceWithdrawnRepository(connection.DBClient.Pool())
 
-	accrualAdapter := adapter.NewAccrualAdapter(connection.AccrualClient)
+	accrualService := adapter.NewAccrualService(connection.AccrualClient)
 
 	requestProducer := NewRequestProducer(logger)
 	retryProducer := NewRetryProducer(logger)
@@ -68,7 +68,7 @@ func newDependencyContainer(
 		UserBalanceWithDrawnProvider: userBalanceWithDrawnProvider,
 		TokenService:                 tokenService,
 		CookieService:                cookieService,
-		AccrualAdapter:               accrualAdapter,
+		AccrualService:               accrualService,
 		UOWFactory:                   uowFactory,
 		RequestProducer:              requestProducer,
 		RetryProducer:                retryProducer,

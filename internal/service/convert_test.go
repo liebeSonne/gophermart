@@ -5,15 +5,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/model"
 )
 
 func Test_convertOrderStatus(t *testing.T) {
-	invalidStatus := adapter.OrderStatus(-1)
+	invalidStatus := OrderStatus(-1)
 
 	type on struct {
-		status adapter.OrderStatus
+		status OrderStatus
 	}
 	type want struct {
 		status model.OrderStatus
@@ -31,22 +30,22 @@ func Test_convertOrderStatus(t *testing.T) {
 		},
 		{
 			"registered",
-			on{adapter.OrderStatusRegistered},
+			on{OrderStatusRegistered},
 			want{status: model.OrderStatusNew},
 		},
 		{
 			"processing",
-			on{adapter.OrderStatusProcessing},
+			on{OrderStatusProcessing},
 			want{status: model.OrderStatusProcessing},
 		},
 		{
 			"invalid",
-			on{adapter.OrderStatusInvalid},
+			on{OrderStatusInvalid},
 			want{status: model.OrderStatusInvalid},
 		},
 		{
 			"processed",
-			on{adapter.OrderStatusProcessed},
+			on{OrderStatusProcessed},
 			want{status: model.OrderStatusProcessed},
 		},
 	}

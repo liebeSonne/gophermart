@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/liebeSonne/gophermart/api/client"
+	"github.com/liebeSonne/gophermart/internal/service"
 )
 
 func TestAccrualAdapter_GetOrders(t *testing.T) {
@@ -29,7 +30,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 		orderID string
 	}
 	type want struct {
-		orderData OrderData
+		orderData service.OrderData
 		err       error
 	}
 	testCases := []struct {
@@ -56,9 +57,9 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					Status: client.REGISTERED,
 				},
 			}},
-			want{orderData: OrderData{
+			want{orderData: service.OrderData{
 				OrderID: orderID1,
-				Status:  OrderStatusRegistered,
+				Status:  service.OrderStatusRegistered,
 			}},
 		},
 		{
@@ -73,9 +74,9 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					Status: client.PROCESSING,
 				},
 			}},
-			want{orderData: OrderData{
+			want{orderData: service.OrderData{
 				OrderID: orderID1,
-				Status:  OrderStatusProcessing,
+				Status:  service.OrderStatusProcessing,
 			}},
 		},
 		{
@@ -91,9 +92,9 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					Accrual: &accrual1,
 				},
 			}},
-			want{orderData: OrderData{
+			want{orderData: service.OrderData{
 				OrderID: orderID1,
-				Status:  OrderStatusProcessed,
+				Status:  service.OrderStatusProcessed,
 				Accrual: &accrualDecimal1,
 			}},
 		},
@@ -109,9 +110,9 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					Status: client.INVALID,
 				},
 			}},
-			want{orderData: OrderData{
+			want{orderData: service.OrderData{
 				OrderID: orderID1,
-				Status:  OrderStatusInvalid,
+				Status:  service.OrderStatusInvalid,
 			}},
 		},
 		{
@@ -122,7 +123,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					StatusCode: http.StatusNoContent,
 				},
 			}},
-			want{err: ErrOrderNotFound},
+			want{err: service.ErrOrderNotFound},
 		},
 		{
 			"server error",
@@ -132,7 +133,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					StatusCode: http.StatusInternalServerError,
 				},
 			}},
-			want{err: ErrServerError},
+			want{err: service.ErrServerError},
 		},
 		{
 			"unexpected error on undefined status",
@@ -142,7 +143,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					StatusCode: 0,
 				},
 			}},
-			want{err: ErrUnexpectedError},
+			want{err: service.ErrUnexpectedError},
 		},
 		{
 			"too many retries",
@@ -152,7 +153,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					StatusCode: http.StatusTooManyRequests,
 				},
 			}},
-			want{err: ErrTooManyRetries},
+			want{err: service.ErrTooManyRetries},
 		},
 		{
 			"too many retries with retry after",
@@ -165,7 +166,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					},
 				},
 			}},
-			want{err: NewErrTooManyRetriesRetryAfter(ErrTooManyRetries, retryAfterDuration1)},
+			want{err: service.NewErrTooManyRetriesRetryAfter(service.ErrTooManyRetries, retryAfterDuration1)},
 		},
 	}
 
@@ -174,7 +175,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 			apiClient := NewMockAccrualClientWithResponsesInterface(t)
 			apiClient.EXPECT().GetOrdersWithResponse(t.Context(), tc.on.orderID, mock.Anything).Return(tc.when.getOrder, tc.when.getOrderErr).Maybe()
 
-			a := NewAccrualAdapter(apiClient)
+			a := NewAccrualService(apiClient)
 
 			orderData, err := a.GetOrders(t.Context(), tc.on.orderID)
 

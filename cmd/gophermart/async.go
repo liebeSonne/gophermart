@@ -6,7 +6,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/provider"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service"
@@ -82,10 +81,10 @@ func NewSetupProducer(
 func NewWorkerHandler(
 	ctx context.Context,
 	logger *logrus.Logger,
-	accrualAdapter adapter.AccrualAdapter,
-) async.WorkerHandler[string, async.OrderIDWorkerResult] {
-	worker := async.NewOrderIDWorker(ctx, jobWorkerName, accrualAdapter, logger)
-	return async.NewWorkerHandler[string, async.OrderIDWorkerResult](ctx, workerHandlerName, worker.Handle, logger)
+	accrualService service.AccrualService,
+) async.WorkerHandler[string, service.OrderIDWorkerResult] {
+	worker := service.NewOrderIDWorker(ctx, jobWorkerName, accrualService, logger)
+	return async.NewWorkerHandler[string, service.OrderIDWorkerResult](ctx, workerHandlerName, worker.Handle, logger)
 }
 
 func NewResultHandler(
@@ -94,7 +93,7 @@ func NewResultHandler(
 	retryProducer async.Producer[string],
 	uowFactory uow.UnitOfWorkFactory,
 	userOrderProvider provider.UserOrderProvider,
-) async.WorkerHandler[async.OrderIDWorkerResult, struct{}] {
+) async.WorkerHandler[service.OrderIDWorkerResult, struct{}] {
 	worker := service.NewOrderIDResultWorker(
 		ctx,
 		resultHandlerWorkerName,
@@ -105,7 +104,7 @@ func NewResultHandler(
 		userOrderProvider,
 		logger,
 	)
-	return async.NewWorkerHandler[async.OrderIDWorkerResult, struct{}](ctx, resultHandlerName, worker.Handle, logger)
+	return async.NewWorkerHandler[service.OrderIDWorkerResult, struct{}](ctx, resultHandlerName, worker.Handle, logger)
 }
 
 func NewJobProducer(
@@ -154,7 +153,7 @@ func runWorkers(
 	jobCh := dependency.JobProducer.Produce()
 
 	// Канал результатов
-	resultCh := make(chan async.OrderIDWorkerResult, resultChannelSize)
+	resultCh := make(chan service.OrderIDWorkerResult, resultChannelSize)
 
 	go func() {
 		<-ctx.Done()
@@ -162,7 +161,7 @@ func runWorkers(
 	}()
 
 	// Обработчик задач
-	workerHandler := NewWorkerHandler(ctx, logger, dependency.AccrualAdapter)
+	workerHandler := NewWorkerHandler(ctx, logger, dependency.AccrualService)
 	workerHandler.Handle(jobCh, resultCh, jobCountWorkers)
 
 	// Обработчик результатов обработки - сохраняет результаты, и, при необходимости, планирует отправку на повторную проверку

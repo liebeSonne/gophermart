@@ -1,4 +1,4 @@
-package async
+package service
 
 import (
 	"context"
@@ -6,26 +6,26 @@ import (
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
-	"github.com/liebeSonne/gophermart/internal/adapter"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 type OrderIDWorkerResult struct {
 	OrderID string
 	Err     error
-	Status  *adapter.OrderStatus
+	Status  *OrderStatus
 	Accrual *decimal.Decimal
 }
 
 func NewOrderIDWorker(
 	ctx context.Context,
 	name string,
-	accrualAdapter adapter.AccrualAdapter,
+	accrualService AccrualService,
 	logger *logrus.Logger,
-) Worker[string, OrderIDWorkerResult] {
+) async.Worker[string, OrderIDWorkerResult] {
 	return &orderIDWorker{
 		ctx:            ctx,
 		name:           name,
-		accrualAdapter: accrualAdapter,
+		accrualService: accrualService,
 		logger:         logger,
 	}
 }
@@ -33,12 +33,12 @@ func NewOrderIDWorker(
 type orderIDWorker struct {
 	ctx            context.Context
 	name           string
-	accrualAdapter adapter.AccrualAdapter
+	accrualService AccrualService
 	logger         *logrus.Logger
 }
 
 func (w *orderIDWorker) Handle(orderID string, resulCh chan<- OrderIDWorkerResult) {
-	orderData, err := w.accrualAdapter.GetOrders(w.ctx, orderID)
+	orderData, err := w.accrualService.GetOrders(w.ctx, orderID)
 	w.logger.Debugf("'%s' worker get order data (%+v) error (%v)", w.name, orderData, err)
 
 	if err != nil {
