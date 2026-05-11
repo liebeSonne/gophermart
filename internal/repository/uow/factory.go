@@ -7,13 +7,11 @@ import (
 	"hash/fnv"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-
 	"github.com/liebeSonne/gophermart/internal/service"
 )
 
 func NewUnitOfWorkFactory(
-	pool *pgxpool.Pool,
+	pool Pool,
 ) service.UnitOfWorkFactory {
 	return &unitOfWorkFactory{
 		pool: pool,
@@ -21,7 +19,7 @@ func NewUnitOfWorkFactory(
 }
 
 type unitOfWorkFactory struct {
-	pool *pgxpool.Pool
+	pool Pool
 }
 
 func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, lockNames []string, fn func(provider service.RepositoryProvider) error) (err error) {
@@ -63,7 +61,7 @@ func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, lockNames
 	return nil
 }
 
-func (f *unitOfWorkFactory) setLock(ctx context.Context, tx pgx.Tx, lockName string) error {
+func (f *unitOfWorkFactory) setLock(ctx context.Context, tx ContextClientTx, lockName string) error {
 	lockID, err := f.getLockID(lockName)
 	if err != nil {
 		return err

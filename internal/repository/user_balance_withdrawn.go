@@ -30,6 +30,9 @@ func (r *UserBalanceWithdrawnRepository) NextID(_ context.Context) uuid.UUID {
 func (r *UserBalanceWithdrawnRepository) Store(ctx context.Context, item model.UserBalanceWithdrawn) error {
 	const sqlQuery = `
 		INSERT INTO "user_balance_withdrawn" (id, user_id, order_id, amount, created_at) VALUES ($1, $2, $3, $4, $5)
+		ON CONFLICT (id)
+		DO UPDATE SET 
+			amount = EXCLUDED.amount
 	`
 
 	_, err := r.client.Exec(ctx, sqlQuery, item.ID, item.UserID, item.OrderID, item.Amount, item.CreatedAt)

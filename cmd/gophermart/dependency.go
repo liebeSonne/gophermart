@@ -12,10 +12,17 @@ import (
 	handlerauth "github.com/liebeSonne/gophermart/internal/handler/auth"
 	"github.com/liebeSonne/gophermart/internal/handler/cookie"
 	"github.com/liebeSonne/gophermart/internal/repository"
+	"github.com/liebeSonne/gophermart/internal/repository/database"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
+
+const accrualServiceRetryMaxAttempts = 3
+const accrualServiceRetryDelay = time.Second * 1
+
+const dbClientRetryMaxAttempts = 3
+const dbClientRetryDelay = time.Second * 1
 
 type dependencyContainer struct {
 	UserService                      handler.UserService
@@ -45,15 +52,19 @@ func newDependencyContainer(
 	logger *logrus.Logger,
 	connection *connectionContainer,
 ) (*dependencyContainer, error) {
-	uowFactory := uow.NewUnitOfWorkFactory(connection.DBClient.Pool())
+	dbPool := database.NewPool(connection.DBClient.Pool())
+	dbPool = database.NewPoolRetryMiddleware(dbPool, dbClientRetryMaxAttempts, dbClientRetryDelay)
+	dbClient := database.NewRetryMiddlewareContextClient(connection.DBClient.Pool(), dbClientRetryMaxAttempts, dbClientRetryDelay)
 
-	userRepository := repository.NewUserRepository(connection.DBClient.Pool())
-	userOrderRepository := repository.NewUserOrderRepository(connection.DBClient.Pool())
-	userBalanceRepository := repository.NewUserBalanceRepository(connection.DBClient.Pool())
-	userBalanceWithDrawnRepository := repository.NewUserBalanceWithdrawnRepository(connection.DBClient.Pool())
+	uowFactory := uow.NewUnitOfWorkFactory(dbPool)
+
+	userRepository := repository.NewUserRepository(dbClient)
+	userOrderRepository := repository.NewUserOrderRepository(dbClient)
+	userBalanceRepository := repository.NewUserBalanceRepository(dbClient)
+	userBalanceWithDrawnRepository := repository.NewUserBalanceWithdrawnRepository(dbClient)
 
 	accrualService := adapter.NewAccrualService(connection.AccrualClient)
-	accrualService = service.NewRetryMiddlewareAccrualService(accrualService, 3, time.Second*1)
+	accrualService = service.NewRetryMiddlewareAccrualService(accrualService, accrualServiceRetryMaxAttempts, accrualServiceRetryDelay)
 
 	requestProducer := NewRequestProducer(logger)
 	retryProducer := NewRetryProducer(logger)
