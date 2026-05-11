@@ -12,24 +12,24 @@ import (
 var ErrUnexpectedError = errors.New("unexpected error")
 var ErrUnknownOrderStatus = errors.New("unknown order status")
 var ErrOrderNotFound = errors.New("order not found")
-var ErrTooManyRetries = errors.New("too many retries")
+var ErrTooManyRequests = errors.New("too many requests")
 var ErrServerError = errors.New("server error")
 
-type ErrTooManyRetriesRetryAfter struct {
+type ErrTooManyRequestsRetryAfter struct {
 	Err        error
 	RetryAfter time.Duration
 }
 
-func (e *ErrTooManyRetriesRetryAfter) Error() string {
+func (e *ErrTooManyRequestsRetryAfter) Error() string {
 	return fmt.Sprintf("retryAfter: %d: %v", e.RetryAfter, e.Err)
 }
 
-func (e *ErrTooManyRetriesRetryAfter) Unwrap() error {
+func (e *ErrTooManyRequestsRetryAfter) Unwrap() error {
 	return e.Err
 }
 
-func NewErrTooManyRetriesRetryAfter(err error, retryAfter time.Duration) error {
-	return &ErrTooManyRetriesRetryAfter{
+func NewErrTooManyRequestsRetryAfter(err error, retryAfter time.Duration) error {
+	return &ErrTooManyRequestsRetryAfter{
 		Err:        err,
 		RetryAfter: retryAfter,
 	}

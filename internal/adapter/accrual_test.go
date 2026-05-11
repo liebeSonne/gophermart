@@ -153,7 +153,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					StatusCode: http.StatusTooManyRequests,
 				},
 			}},
-			want{err: service.ErrTooManyRetries},
+			want{err: service.ErrTooManyRequests},
 		},
 		{
 			"too many retries with retry after",
@@ -166,7 +166,7 @@ func TestAccrualAdapter_GetOrders(t *testing.T) {
 					},
 				},
 			}},
-			want{err: service.NewErrTooManyRetriesRetryAfter(service.ErrTooManyRetries, retryAfterDuration1)},
+			want{err: service.NewErrTooManyRequestsRetryAfter(service.ErrTooManyRequests, retryAfterDuration1)},
 		},
 	}
 

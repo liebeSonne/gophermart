@@ -47,10 +47,10 @@ func (a *accrualAdapter) GetOrders(ctx context.Context, orderID string) (service
 			seconds, err := strconv.Atoi(retryAfter)
 			if err == nil {
 				retryAfterDuration := time.Duration(seconds) * time.Second
-				return service.OrderData{}, service.NewErrTooManyRetriesRetryAfter(service.ErrTooManyRetries, retryAfterDuration)
+				return service.OrderData{}, service.NewErrTooManyRequestsRetryAfter(service.ErrTooManyRequests, retryAfterDuration)
 			}
 		}
-		return service.OrderData{}, service.ErrTooManyRetries
+		return service.OrderData{}, service.ErrTooManyRequests
 	case http.StatusInternalServerError:
 		return service.OrderData{}, service.ErrServerError
 	default:

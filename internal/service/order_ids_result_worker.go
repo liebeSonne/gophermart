@@ -22,42 +22,46 @@ type UserOrderProvider interface {
 
 // NewOrderIDResultWorker - обработчик результатов проверки заказов
 // retryDelay - интервал для повторной попытки обработки заявки (при не финальном статусе и при ошибке)
-// tooManyRetriesDelay - интервал через который произойдет повторная попытка при ответе от внешнего сервиса о слишком большом числе запросов
+// minTooManyRequestsRetryDelay - интервал через который произойдет повторная попытка при ответе от внешнего сервиса о слишком большом числе запросов, при получении RetryAfter заголовка, интервал будет не меньше минимального
+// maxTooManyRequestsRetryDelay - максимальный интервал через который пройдет повторная попытка, при получении RetryAfter заголовка которое больше максимального
 // retryProducer - поставщик канала повторных попыток, принимающий запросы на отложенный запуск обработки заявок
 func NewOrderIDResultWorker(
 	ctx context.Context,
 	name string,
 	retryDelay time.Duration,
-	tooManyRetriesDelay time.Duration,
+	minTooManyRequestsRetryDelay time.Duration,
+	maxTooManyRequestsRetryDelay time.Duration,
 	retryProducer async.Producer[string],
 	uowFactory UnitOfWorkFactory,
 	userOrderProvider UserOrderProvider,
 	logger *logrus.Logger,
 ) async.Worker[OrderIDWorkerResult, struct{}] {
 	return &orderIDResultWorker{
-		ctx:                 ctx,
-		name:                name,
-		retryDelay:          retryDelay,
-		tooManyRetriesDelay: tooManyRetriesDelay,
-		retryProducer:       retryProducer,
-		uowFactory:          uowFactory,
-		userOrderProvider:   userOrderProvider,
-		logger:              logger,
+		ctx:                          ctx,
+		name:                         name,
+		retryDelay:                   retryDelay,
+		minTooManyRequestsRetryDelay: minTooManyRequestsRetryDelay,
+		maxTooManyRequestsRetryDelay: maxTooManyRequestsRetryDelay,
+		retryProducer:                retryProducer,
+		uowFactory:                   uowFactory,
+		userOrderProvider:            userOrderProvider,
+		logger:                       logger,
 	}
 }
 
 type orderIDResultWorker struct {
-	ctx                 context.Context
-	name                string
-	retryDelay          time.Duration
-	tooManyRetriesDelay time.Duration
-	retryProducer       async.Producer[string]
-	uowFactory          UnitOfWorkFactory
-	userOrderProvider   UserOrderProvider
-	logger              *logrus.Logger
+	ctx                          context.Context
+	name                         string
+	retryDelay                   time.Duration
+	minTooManyRequestsRetryDelay time.Duration
+	maxTooManyRequestsRetryDelay time.Duration
+	retryProducer                async.Producer[string]
+	uowFactory                   UnitOfWorkFactory
+	userOrderProvider            UserOrderProvider
+	logger                       *logrus.Logger
 }
 
-func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct{}) {
+func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult) struct{} {
 	doRetry := false
 	executeAtDelay := w.calculateExecuteAtDelay(result.Err)
 
@@ -71,7 +75,7 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 	if result.Err != nil {
 		w.logger.Debugf("'%s' worker do retry order (%v) on result error (%v)", w.name, result.OrderID, result.Err)
 		doRetry = true
-		return
+		return struct{}{}
 	}
 
 	var newOrderStatusPtr *model.UserOrderStatus
@@ -80,7 +84,7 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 		w.logger.Debugf("'%s' worker do retry order (%v) on new status error (%v)", w.name, result.OrderID, err)
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		doRetry = true
-		return
+		return struct{}{}
 	}
 
 	userIDPtr, err := w.userOrderProvider.FindUserIDByOrderID(w.ctx, result.OrderID)
@@ -89,11 +93,11 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		w.logger.WithError(err).Errorf("'%s' worker failed to find user by order (%v)", w.name, result.OrderID)
 		w.logger.Debugf("'%s' worker do retry order (%v) on found user by order error (%v)", w.name, result.OrderID, err)
-		return
+		return struct{}{}
 	}
 	if userIDPtr == nil {
 		w.logger.Warnf("'%s' worker not found user by order (%v)", w.name, result.OrderID)
-		return
+		return struct{}{}
 	}
 
 	lockNames := []string{
@@ -110,8 +114,14 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 		executeAtDelay = w.calculateExecuteAtDelay(err)
 		w.logger.WithError(err).Errorf("'%s' worker failed to handle user order (%v)", w.name, result.OrderID)
 		w.logger.Debugf("'%s' worker do retry order (%v) on execute error (%v)", w.name, result.OrderID, err)
-		return
+		return struct{}{}
 	}
+
+	return struct{}{}
+}
+
+func (w *orderIDResultWorker) SleepingHandle(_ struct{}) (bool, time.Duration) {
+	return false, 0
 }
 
 func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
@@ -119,13 +129,13 @@ func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
 		return w.retryDelay
 	}
 
-	var retryErr *ErrTooManyRetriesRetryAfter
+	var retryErr *ErrTooManyRequestsRetryAfter
 	if errors.As(err, &retryErr) && retryErr.RetryAfter > 0 {
-		return max(w.tooManyRetriesDelay, retryErr.RetryAfter)
+		return min(max(w.minTooManyRequestsRetryDelay, retryErr.RetryAfter), w.maxTooManyRequestsRetryDelay)
 	}
 
-	if errors.Is(err, ErrTooManyRetries) {
-		return w.tooManyRetriesDelay
+	if errors.Is(err, ErrTooManyRequests) {
+		return w.minTooManyRequestsRetryDelay
 	}
 
 	if errors.Is(err, ErrUnknownAccrualOrderStatus) {

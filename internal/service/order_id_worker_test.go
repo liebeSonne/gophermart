@@ -81,11 +81,12 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 
 			l, _ := test.NewNullLogger()
 
-			w := NewOrderIDWorker(ctx, "name", accrualService, l)
+			w := NewOrderIDWorker(ctx, "name", time.Second, time.Second, accrualService, l)
 
 			outCh := make(chan OrderIDWorkerResult, 1)
 
-			w.Handle(tc.on.orderID, outCh)
+			out := w.Handle(tc.on.orderID)
+			outCh <- out
 
 			values := make([]OrderIDWorkerResult, 0)
 			timeout := time.After(tc.on.waiting)

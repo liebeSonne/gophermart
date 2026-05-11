@@ -38,12 +38,17 @@ const jobProducerChannelSize = 1000
 // Настройки канала результатов
 const resultChannelSize = 1000
 
+// Настройки job worker
+const jobWorkerMinTooManyRequestsRetryDelay = time.Minute * 1
+const jobWorkerMaxTooManyRequestsRetryDelay = time.Minute * 10
+
 // Настройки worker handler
 const jobCountWorkers = 5
 
 // Настройки result handler
 const resultRetryDelay = time.Minute * 1
-const resultTooManyRetriesDelay = time.Minute * 5
+const resultMinTooManyRequestsRetryDelay = time.Minute * 1
+const resultMaxTooManyRequestsRetryDelay = time.Minute * 10
 const resultCountWorkers = 3
 
 func NewRequestProducer(
@@ -81,8 +86,15 @@ func NewWorkerHandler(
 	logger *logrus.Logger,
 	accrualService service.AccrualService,
 ) async.WorkerHandler[string, service.OrderIDWorkerResult] {
-	worker := service.NewOrderIDWorker(ctx, jobWorkerName, accrualService, logger)
-	return async.NewWorkerHandler[string, service.OrderIDWorkerResult](ctx, workerHandlerName, worker.Handle, logger)
+	worker := service.NewOrderIDWorker(
+		ctx,
+		jobWorkerName,
+		jobWorkerMinTooManyRequestsRetryDelay,
+		jobWorkerMaxTooManyRequestsRetryDelay,
+		accrualService,
+		logger,
+	)
+	return async.NewWorkerHandler[string, service.OrderIDWorkerResult](ctx, workerHandlerName, worker.Handle, worker.SleepingHandle, logger)
 }
 
 func NewResultHandler(
@@ -96,13 +108,14 @@ func NewResultHandler(
 		ctx,
 		resultHandlerWorkerName,
 		resultRetryDelay,
-		resultTooManyRetriesDelay,
+		resultMinTooManyRequestsRetryDelay,
+		resultMaxTooManyRequestsRetryDelay,
 		retryProducer,
 		uowFactory,
 		userOrderProvider,
 		logger,
 	)
-	return async.NewWorkerHandler[service.OrderIDWorkerResult, struct{}](ctx, resultHandlerName, worker.Handle, logger)
+	return async.NewWorkerHandler[service.OrderIDWorkerResult, struct{}](ctx, resultHandlerName, worker.Handle, worker.SleepingHandle, logger)
 }
 
 func NewJobProducer(
