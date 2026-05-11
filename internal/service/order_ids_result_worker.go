@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"github.com/sirupsen/logrus"
 
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
@@ -34,7 +34,7 @@ func NewOrderIDResultWorker(
 	retryProducer async.Producer[string],
 	uowFactory UnitOfWorkFactory,
 	userOrderProvider UserOrderProvider,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) async.Worker[OrderIDWorkerResult, struct{}] {
 	return &orderIDResultWorker{
 		ctx:                          ctx,
@@ -58,7 +58,7 @@ type orderIDResultWorker struct {
 	retryProducer                async.Producer[string]
 	uowFactory                   UnitOfWorkFactory
 	userOrderProvider            UserOrderProvider
-	logger                       *logrus.Logger
+	logger                       ilogger.Logger
 }
 
 func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult) struct{} {
@@ -91,7 +91,7 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult) struct{} {
 	if err != nil {
 		doRetry = true
 		executeAtDelay = w.calculateExecuteAtDelay(err)
-		w.logger.WithError(err).Errorf("'%s' worker failed to find user by order (%v)", w.name, result.OrderID)
+		w.logger.Errorf("'%s' worker failed to find user by order (%v): %v", w.name, result.OrderID, err)
 		w.logger.Debugf("'%s' worker do retry order (%v) on found user by order error (%v)", w.name, result.OrderID, err)
 		return struct{}{}
 	}
@@ -112,7 +112,7 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult) struct{} {
 	if err != nil {
 		doRetry = true
 		executeAtDelay = w.calculateExecuteAtDelay(err)
-		w.logger.WithError(err).Errorf("'%s' worker failed to handle user order (%v)", w.name, result.OrderID)
+		w.logger.Errorf("'%s' worker failed to handle user order (%v): %v", w.name, result.OrderID, err)
 		w.logger.Debugf("'%s' worker do retry order (%v) on execute error (%v)", w.name, result.OrderID, err)
 		return struct{}{}
 	}

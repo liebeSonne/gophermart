@@ -5,8 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
@@ -42,7 +41,7 @@ func NewOrderIDsProducer(
 	waitingOnError time.Duration,
 	executedUserOrderProvider ExecutedUserOrderProvider,
 	retryProducer async.Producer[string],
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) OrderIDsProducer {
 	return &orderIDsProducer{
 		name:                      name,
@@ -69,7 +68,7 @@ type orderIDsProducer struct {
 	waitingOnError            time.Duration
 	executedUserOrderProvider ExecutedUserOrderProvider
 	retryProducer             async.Producer[string]
-	logger                    *logrus.Logger
+	logger                    ilogger.Logger
 	ch                        chan string
 	closed                    bool
 	started                   bool
@@ -147,7 +146,7 @@ func (p *orderIDsProducer) Start(ctx context.Context) {
 				p.logger.Debugf("'%s' producer select (limit: %v, offset: %v)", p.name, limit, offset)
 				orderIDToExecuteAtMap, err := p.selectOrderIDs(p.ctx, startTime, limit, &offset)
 				if err != nil {
-					p.logger.WithError(err).Errorf("'%s' producer error on select", p.name)
+					p.logger.Errorf("'%s' producer error on select: %v", p.name, err)
 					retries++
 					if retries > p.limitRetriesOnError {
 						p.logger.Debugf("'%s' producer finish on error (retrice %d/%d)", p.name, retries, p.limitRetriesOnError)

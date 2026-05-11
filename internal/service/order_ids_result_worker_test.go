@@ -8,11 +8,11 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/model"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
@@ -267,7 +267,7 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 				return fn(repositoryProvider)
 			}).Maybe()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			w := NewOrderIDResultWorker(
 				ctx,

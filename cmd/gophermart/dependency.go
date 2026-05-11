@@ -3,14 +3,13 @@ package main
 import (
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/liebeSonne/gophermart/internal/adapter"
 	"github.com/liebeSonne/gophermart/internal/auth"
 	"github.com/liebeSonne/gophermart/internal/config"
 	"github.com/liebeSonne/gophermart/internal/handler"
 	handlerauth "github.com/liebeSonne/gophermart/internal/handler/auth"
 	"github.com/liebeSonne/gophermart/internal/handler/cookie"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/repository"
 	"github.com/liebeSonne/gophermart/internal/repository/database"
 	"github.com/liebeSonne/gophermart/internal/repository/uow"
@@ -49,7 +48,7 @@ type dependencyContainer struct {
 
 func newDependencyContainer(
 	cfg config.Config,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 	connection *connectionContainer,
 ) (*dependencyContainer, error) {
 	dbPool := database.NewPool(connection.DBClient.Pool())

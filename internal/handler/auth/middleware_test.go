@@ -9,11 +9,11 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	"github.com/google/uuid"
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/liebeSonne/gophermart/internal/auth"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 func TestNewAuthMiddleware(t *testing.T) {
@@ -76,7 +76,7 @@ func TestNewAuthMiddleware(t *testing.T) {
 				contextUserID, existContextUserID = auth.GetUserIDFromContext(ctx)
 			})
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			handler := NewAuthMiddleware(h, tokenService, cookieService, l)
 

@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 func TestProducer_Add(t *testing.T) {
@@ -44,7 +45,7 @@ func TestProducer_Add(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			p := NewProducer[string]("name", tc.on.channelSize, l)
 			p.Start(ctx)
@@ -183,7 +184,7 @@ func TestProducer_Schedule(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			p := NewProducer[string]("name", tc.on.channelSize, l)
 			p.Start(ctx)
@@ -290,7 +291,7 @@ func TestProducer_Setup(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			p := NewProducer[string]("name", uint(len(tc.on.values)), l)
 			p.Start(ctx)

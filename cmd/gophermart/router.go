@@ -5,16 +5,16 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/api/server"
 	"github.com/liebeSonne/gophermart/internal/handler"
 	"github.com/liebeSonne/gophermart/internal/handler/auth"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 func initRouter(
 	dependency *dependencyContainer,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) (http.Handler, error) {
 	s := handler.NewServer(
 		dependency.UserService,

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 // Worker - интерфейс обработчика единицы данных I, возвращающего результат O
@@ -31,7 +31,7 @@ func NewWorkerHandler[I, O any](
 	name string,
 	handler WorkerHandleFunc[I, O],
 	sleepingHandler WorkerSleepingHandleFunc[O],
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) WorkerHandler[I, O] {
 	return &workerHandler[I, O]{
 		ctx:             ctx,
@@ -47,7 +47,7 @@ type workerHandler[I, O any] struct {
 	name            string
 	handler         WorkerHandleFunc[I, O]
 	sleepingHandler WorkerSleepingHandleFunc[O]
-	logger          *logrus.Logger
+	logger          ilogger.Logger
 	mu              sync.RWMutex
 	isSleeping      bool
 	sleepingTime    time.Duration

@@ -7,8 +7,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/sirupsen/logrus"
-
 	iocloser "github.com/liebeSonne/gophermart/internal/io/closer"
 )
 
@@ -30,21 +28,23 @@ func main() {
 	cfg := initConfig()
 	logger := initLogger(cfg)
 
-	logger.WithFields(logrus.Fields{
+	logger.Infow("Config", map[string]any{
 		"RunAddress":           cfg.RunAddress,
 		"AccrualSystemAddress": cfg.AccrualSystemAddress,
 		"LogLevel":             cfg.LogLevel,
 		"AuthCookieTokenKey":   cfg.AuthCookieTokenKey,
 		"AuthTokenExpires":     cfg.AuthTokenExpires,
-	}).Infoln("Config")
+	})
 
 	err := runMigrator(cfg)
 	if err != nil {
-		logger.WithError(err).Fatal("Failed to run migrator")
+		logger.Errorf("Failed to run migrator: %s", err.Error())
+		return
 	}
 
 	err = runApp(ctx, cfg, &closer, logger)
 	if err != nil {
-		logger.Fatalf("error running app: %s", err.Error())
+		logger.Errorf("error running app: %s", err.Error())
+		return
 	}
 }

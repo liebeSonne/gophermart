@@ -7,10 +7,10 @@ import (
 	"net/http"
 
 	"github.com/shopspring/decimal"
-	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/api/server"
 	"github.com/liebeSonne/gophermart/internal/auth"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/model"
 )
 
@@ -23,7 +23,7 @@ func NewServer(
 	userBalanceWithDrawnQueryService UserBalanceWithDrawnQueryService,
 	tokenService TokenService,
 	cookieService CookieService,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) server.ServerInterface {
 	return &Server{
 		userService:                      userService,
@@ -47,7 +47,7 @@ type Server struct {
 	userBalanceWithDrawnQueryService UserBalanceWithDrawnQueryService
 	tokenService                     TokenService
 	cookieService                    CookieService
-	logger                           *logrus.Logger
+	logger                           ilogger.Logger
 }
 
 //nolint:dupl
@@ -74,14 +74,14 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.logger.WithError(err).Errorf("error creating user (login: '%s')", input.Login)
+		s.logger.Errorf("error creating user (login: '%s'): %v", input.Login, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	err = s.setUserAuthorization(w, r, user)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error setting user (id: '%s', login: '%s') authorization", user.ID, user.Login)
+		s.logger.Errorf("error setting user (id: '%s', login: '%s') authorization: %v", user.ID, user.Login, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -114,14 +114,14 @@ func (s *Server) LoginUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.logger.WithError(err).Errorf("error creating user (login: '%s')", input.Login)
+		s.logger.Errorf("error creating user (login: '%s'): %v", input.Login, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	err = s.setUserAuthorization(w, r, user)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error setting user (id: '%s', login: '%s') authorization", user.ID, user.Login)
+		s.logger.Errorf("error setting user (id: '%s', login: '%s') authorization: %v", user.ID, user.Login, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -166,7 +166,7 @@ func (s *Server) UploadUserOrders(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.logger.WithError(err).Errorf("error uploading user (userID: '%s') order (orderID: '%s')", userID, orderID)
+		s.logger.Errorf("error uploading user (userID: '%s') order (orderID: '%s'): %v", userID, orderID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -188,7 +188,7 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 
 	items, err := s.userOrderQueryService.FindByUserID(ctx, userID)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error getting user (userID: %s) orders", userID)
+		s.logger.Errorf("error getting user (userID: %s) orders: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -200,7 +200,7 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := convertUserOrdersToAPI(items)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error converting user (userID: %s) orders", userID)
+		s.logger.Errorf("error converting user (userID: %s) orders: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -209,7 +209,7 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 	err = enc.Encode(resp)
 
 	if err != nil {
-		s.logger.WithError(err).Errorf("error encoding user (userID: %s) orders", userID)
+		s.logger.Errorf("error encoding user (userID: %s) orders: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -230,14 +230,14 @@ func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 
 	userBalance, err := s.userBalanceQueryService.GetByUserID(ctx, userID)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error getting user (userID: %s) balance", userID)
+		s.logger.Errorf("error getting user (userID: %s) balance: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
 	resp, err := convertUserBalanceToAPI(userBalance)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error converting user (userID: %s) balance", userID)
+		s.logger.Errorf("error converting user (userID: %s) balanceL %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -246,7 +246,7 @@ func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 	err = enc.Encode(resp)
 
 	if err != nil {
-		s.logger.WithError(err).Errorf("error encoding user (userID: %s) orders", userID)
+		s.logger.Errorf("error encoding user (userID: %s) orders: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -288,7 +288,7 @@ func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		s.logger.WithError(err).Errorf("error add withdrawn (userID: '%s', orderID: '%s', amount: '%f')", userID, input.OrderID, withdrawnBalanceRequest.Sum)
+		s.logger.Errorf("error add withdrawn (userID: '%s', orderID: '%s', amount: '%f'): %v", userID, input.OrderID, withdrawnBalanceRequest.Sum, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -310,7 +310,7 @@ func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
 
 	items, err := s.userBalanceWithDrawnQueryService.FindByUserID(ctx, userID)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error getting user (userID: %s) balance withdrawn", userID)
+		s.logger.Errorf("error getting user (userID: %s) balance withdrawn: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -322,7 +322,7 @@ func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := convertUserBalanceWithdrawnItemsToAPI(items)
 	if err != nil {
-		s.logger.WithError(err).Errorf("error converting user (userID: %s) balance withdrawn items", userID)
+		s.logger.Errorf("error converting user (userID: %s) balance withdrawn items: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
@@ -331,7 +331,7 @@ func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
 	err = enc.Encode(resp)
 
 	if err != nil {
-		s.logger.WithError(err).Errorf("error encoding user (userID: %s) balance withdrawn items", userID)
+		s.logger.Errorf("error encoding user (userID: %s) balance withdrawn items: %v", userID, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}

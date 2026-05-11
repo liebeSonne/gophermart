@@ -3,9 +3,8 @@ package auth
 import (
 	"net/http"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/liebeSonne/gophermart/internal/auth"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 type TokenService interface {
@@ -20,14 +19,14 @@ func NewAuthMiddleware(
 	next http.Handler,
 	tokenService TokenService,
 	cookieService CookieService,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		tokenString, err := cookieService.GetAuthToken(r)
 		if err != nil {
-			logger.WithError(err).Error("error getting auth token from cookie")
+			logger.Errorw("error getting auth token from cookie", "err", err)
 			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 			return
 		}
@@ -37,7 +36,7 @@ func NewAuthMiddleware(
 			if err == nil {
 				ctx = auth.CreateTokenContext(ctx, tokenData)
 			} else {
-				logger.WithError(err).Error("parse token error")
+				logger.Errorw("parse token error", "err", err)
 			}
 		}
 

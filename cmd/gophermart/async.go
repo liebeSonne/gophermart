@@ -4,8 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/service"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
@@ -52,19 +51,19 @@ const resultMaxTooManyRequestsRetryDelay = time.Minute * 10
 const resultCountWorkers = 3
 
 func NewRequestProducer(
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) async.Producer[string] {
 	return async.NewProducer[string](requestProducerName, requestProducerChannelSize, logger)
 }
 
 func NewRetryProducer(
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) async.Producer[string] {
 	return async.NewProducer[string](retryProducerName, retryProducerChannelSize, logger)
 }
 
 func NewSetupProducer(
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 	userOrderProvider service.ExecutedUserOrderProvider,
 	retryProducer async.Producer[string],
 ) service.OrderIDsProducer {
@@ -83,7 +82,7 @@ func NewSetupProducer(
 
 func NewWorkerHandler(
 	ctx context.Context,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 	accrualService service.AccrualService,
 ) async.WorkerHandler[string, service.OrderIDWorkerResult] {
 	worker := service.NewOrderIDWorker(
@@ -99,7 +98,7 @@ func NewWorkerHandler(
 
 func NewResultHandler(
 	ctx context.Context,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 	retryProducer async.Producer[string],
 	uowFactory service.UnitOfWorkFactory,
 	userOrderProvider service.UserOrderProvider,
@@ -119,7 +118,7 @@ func NewResultHandler(
 }
 
 func NewJobProducer(
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) async.Producer[string] {
 	return async.NewProducer[string](jobProducerName, jobProducerChannelSize, logger)
 }
@@ -158,7 +157,7 @@ func runProducers(
 
 func runWorkers(
 	ctx context.Context,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 	dependency *dependencyContainer,
 ) {
 	jobCh := dependency.JobProducer.Produce()

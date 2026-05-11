@@ -6,9 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 func TestWorkerHandler_Handle(t *testing.T) {
@@ -63,7 +64,7 @@ func TestWorkerHandler_Handle(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			handler := WorkerHandleFunc[string, int](func(value string) int {
 				result, ok := tc.when.results[value]
@@ -152,7 +153,7 @@ func TestWorkerHandler_Handle_sleeping(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			handler := WorkerHandleFunc[string, int](func(value string) int {
 				result, ok := tc.when.results[value]

@@ -7,10 +7,11 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 func TestOrderIDWorker_Handle(t *testing.T) {
@@ -79,7 +80,7 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 			accrualService := NewMockAccrualService(t)
 			accrualService.EXPECT().GetOrders(mock.Anything, tc.on.orderID).Return(tc.when.getOrder, tc.when.getOrderErr).Once()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 
 			w := NewOrderIDWorker(ctx, "name", time.Second, time.Second, accrualService, l)
 

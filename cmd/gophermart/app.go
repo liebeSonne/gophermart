@@ -6,27 +6,26 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/sirupsen/logrus"
-
 	"github.com/liebeSonne/gophermart/internal/config"
 	iocloser "github.com/liebeSonne/gophermart/internal/io/closer"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 func runApp(
 	ctx context.Context,
 	cfg config.Config,
 	closer *iocloser.MultiCloser,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) error {
 	connection, err := newConnectionContainer(ctx, cfg, closer, logger)
 	if err != nil {
-		logger.WithError(err).Error("error creating connection container")
+		logger.Errorw("error creating connection container", "err", err)
 		return err
 	}
 
 	dependency, err := newDependencyContainer(cfg, logger, connection)
 	if err != nil {
-		logger.WithError(err).Error("error creating dependency container")
+		logger.Errorw("error creating dependency container", "err", err)
 		return err
 	}
 
@@ -38,7 +37,7 @@ func runApp(
 		return err
 	}
 
-	logger.Infoln("starting server")
+	logger.Infow("starting server")
 
 	srv := &http.Server{
 		Addr:              cfg.RunAddress,
@@ -59,7 +58,7 @@ func runApp(
 	case err := <-serverErrorsCh:
 		return err
 	case <-ctx.Done():
-		logger.Infoln("starting server shutdown")
+		logger.Infow("starting server shutdown")
 
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
@@ -69,7 +68,7 @@ func runApp(
 			return err
 		}
 
-		logger.Infoln("server shutdown complete")
+		logger.Infow("server shutdown complete")
 	}
 
 	return nil

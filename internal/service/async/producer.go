@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/sirupsen/logrus"
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 )
 
 type CancelFunc func() bool
@@ -28,7 +28,7 @@ type Producer[T any] interface {
 func NewProducer[T any](
 	name string,
 	channelSize uint,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) Producer[T] {
 	return &producer[T]{
 		name:        name,
@@ -44,7 +44,7 @@ type producer[T any] struct {
 	ctx         context.Context
 	name        string
 	channelSize uint
-	logger      *logrus.Logger
+	logger      ilogger.Logger
 	ch          chan T
 	closed      bool
 	started     bool

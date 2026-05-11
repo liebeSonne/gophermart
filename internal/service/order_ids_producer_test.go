@@ -2,15 +2,14 @@ package service
 
 import (
 	"context"
-
 	"sort"
 	"testing"
 	"time"
 
-	"github.com/sirupsen/logrus/hooks/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
@@ -103,7 +102,7 @@ func TestOrderIDsProducer_Produce(t *testing.T) {
 				return nil, tc.when.findOrderIDsErr
 			}).Maybe()
 
-			l, _ := test.NewNullLogger()
+			l := ilogger.NewNullLogger()
 			limit := uint(100)
 			limitRetriesOnError := uint(0)
 			waitingOnError := time.Millisecond * 10

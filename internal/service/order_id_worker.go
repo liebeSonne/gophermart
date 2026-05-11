@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/shopspring/decimal"
-	"github.com/sirupsen/logrus"
 
+	ilogger "github.com/liebeSonne/gophermart/internal/logger"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
@@ -24,7 +24,7 @@ func NewOrderIDWorker(
 	minTooManyRequestsRetryDelay time.Duration,
 	maxTooManyRequestsRetryDelay time.Duration,
 	accrualService AccrualService,
-	logger *logrus.Logger,
+	logger ilogger.Logger,
 ) async.Worker[string, OrderIDWorkerResult] {
 	return &orderIDWorker{
 		ctx:                          ctx,
@@ -42,7 +42,7 @@ type orderIDWorker struct {
 	minTooManyRequestsRetryDelay time.Duration
 	maxTooManyRequestsRetryDelay time.Duration
 	accrualService               AccrualService
-	logger                       *logrus.Logger
+	logger                       ilogger.Logger
 }
 
 func (w *orderIDWorker) Handle(orderID string) OrderIDWorkerResult {
