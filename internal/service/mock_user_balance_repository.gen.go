@@ -2,7 +2,7 @@
 // github.com/vektra/mockery
 // template: testify
 
-package repository
+package service
 
 import (
 	"context"
@@ -37,74 +37,6 @@ type MockUserBalanceRepository_Expecter struct {
 
 func (_m *MockUserBalanceRepository) EXPECT() *MockUserBalanceRepository_Expecter {
 	return &MockUserBalanceRepository_Expecter{mock: &_m.Mock}
-}
-
-// FindByUserID provides a mock function for the type MockUserBalanceRepository
-func (_mock *MockUserBalanceRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error) {
-	ret := _mock.Called(ctx, userID)
-
-	if len(ret) == 0 {
-		panic("no return value specified for FindByUserID")
-	}
-
-	var r0 *model.UserBalance
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) (*model.UserBalance, error)); ok {
-		return returnFunc(ctx, userID)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, uuid.UUID) *model.UserBalance); ok {
-		r0 = returnFunc(ctx, userID)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*model.UserBalance)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, uuid.UUID) error); ok {
-		r1 = returnFunc(ctx, userID)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockUserBalanceRepository_FindByUserID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindByUserID'
-type MockUserBalanceRepository_FindByUserID_Call struct {
-	*mock.Call
-}
-
-// FindByUserID is a helper method to define mock.On call
-//   - ctx context.Context
-//   - userID uuid.UUID
-func (_e *MockUserBalanceRepository_Expecter) FindByUserID(ctx interface{}, userID interface{}) *MockUserBalanceRepository_FindByUserID_Call {
-	return &MockUserBalanceRepository_FindByUserID_Call{Call: _e.mock.On("FindByUserID", ctx, userID)}
-}
-
-func (_c *MockUserBalanceRepository_FindByUserID_Call) Run(run func(ctx context.Context, userID uuid.UUID)) *MockUserBalanceRepository_FindByUserID_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 uuid.UUID
-		if args[1] != nil {
-			arg1 = args[1].(uuid.UUID)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockUserBalanceRepository_FindByUserID_Call) Return(userBalance *model.UserBalance, err error) *MockUserBalanceRepository_FindByUserID_Call {
-	_c.Call.Return(userBalance, err)
-	return _c
-}
-
-func (_c *MockUserBalanceRepository_FindByUserID_Call) RunAndReturn(run func(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error)) *MockUserBalanceRepository_FindByUserID_Call {
-	_c.Call.Return(run)
-	return _c
 }
 
 // GetByUserID provides a mock function for the type MockUserBalanceRepository

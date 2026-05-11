@@ -5,24 +5,19 @@ import (
 	"net/http"
 )
 
-type Service interface {
-	SetAuthToken(tokenString string, w http.ResponseWriter, r *http.Request) error
-	GetAuthToken(r *http.Request) (string, error)
-}
-
 func NewService(
 	tokenKey string,
-) Service {
-	return &cookieServiceImpl{
+) *Service {
+	return &Service{
 		tokenKey: tokenKey,
 	}
 }
 
-type cookieServiceImpl struct {
+type Service struct {
 	tokenKey string
 }
 
-func (s *cookieServiceImpl) SetAuthToken(tokenString string, w http.ResponseWriter, r *http.Request) error {
+func (s *Service) SetAuthToken(tokenString string, w http.ResponseWriter, r *http.Request) error {
 	cookie := &http.Cookie{
 		Name:  s.tokenKey,
 		Value: tokenString,
@@ -32,7 +27,7 @@ func (s *cookieServiceImpl) SetAuthToken(tokenString string, w http.ResponseWrit
 	return nil
 }
 
-func (s *cookieServiceImpl) GetAuthToken(r *http.Request) (string, error) {
+func (s *Service) GetAuthToken(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(s.tokenKey)
 	if err != nil {
 		if errors.Is(err, http.ErrNoCookie) {

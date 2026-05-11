@@ -12,35 +12,26 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository/database"
+	"github.com/liebeSonne/gophermart/internal/service"
 )
 
-type UserOrderRepository interface {
-	NextID(ctx context.Context) uuid.UUID
-	Store(ctx context.Context, items []model.UserOrder) error
-	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error)
-	FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error)
-	FindOrderIDToExecuteAtMap(ctx context.Context, spec model.FindUserOrderSpecification) (map[string]time.Time, error)
-	FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error)
-}
-
 func NewUserOrderRepository(
-	client database.ContextClient,
-) UserOrderRepository {
-	return &userOrderRepository{
+	client ContextClient,
+) *UserOrderRepository {
+	return &UserOrderRepository{
 		client: client,
 	}
 }
 
-type userOrderRepository struct {
-	client database.ContextClient
+type UserOrderRepository struct {
+	client ContextClient
 }
 
-func (r *userOrderRepository) NextID(_ context.Context) uuid.UUID {
+func (r *UserOrderRepository) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 
-func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder) error {
+func (r *UserOrderRepository) Store(ctx context.Context, items []model.UserOrder) error {
 	const sqlQuery = `
 		INSERT INTO user_order (id, user_id, order_id, status, accrual, created_at, updated_at, execute_at, retries) VALUES %s
 		ON CONFLICT (id)
@@ -73,7 +64,7 @@ func (r *userOrderRepository) Store(ctx context.Context, items []model.UserOrder
 	return nil
 }
 
-func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error) {
+func (r *UserOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserOrder, error) {
 	const sqlQuery = `
 		SELECT id, user_id, order_id, status, accrual, created_at, updated_at, execute_at, retries
 		FROM user_order 
@@ -97,7 +88,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 		if err != nil {
 			return nil, fmt.Errorf("error on scan row: %w", err)
 		}
-		item.Status = model.OrderStatus(orderStatus)
+		item.Status = model.UserOrderStatus(orderStatus)
 		items = append(items, item)
 	}
 	if rows.Err() != nil {
@@ -107,7 +98,7 @@ func (r *userOrderRepository) FindByUserID(ctx context.Context, userID uuid.UUID
 	return items, nil
 }
 
-func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error) {
+func (r *UserOrderRepository) FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error) {
 	const sqlQuery = `
 		SELECT id, user_id, order_id, status, accrual, created_at, updated_at, execute_at, retries
 		FROM user_order 
@@ -127,12 +118,12 @@ func (r *userOrderRepository) FindByOrderID(ctx context.Context, orderID string)
 		return nil, fmt.Errorf("error on scan row: %w", err)
 	}
 
-	item.Status = model.OrderStatus(orderStatus)
+	item.Status = model.UserOrderStatus(orderStatus)
 
 	return &item, nil
 }
 
-func (r *userOrderRepository) FindOrderIDToExecuteAtMap(ctx context.Context, spec model.FindUserOrderSpecification) (map[string]time.Time, error) {
+func (r *UserOrderRepository) FindOrderIDToExecuteAtMap(ctx context.Context, spec service.FindUserOrderSpecification) (map[string]time.Time, error) {
 	const sqlQuery = `
 		SELECT order_id, execute_at
 		FROM user_order 
@@ -172,7 +163,7 @@ func (r *userOrderRepository) FindOrderIDToExecuteAtMap(ctx context.Context, spe
 	return resultMap, nil
 }
 
-func (r *userOrderRepository) FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error) {
+func (r *UserOrderRepository) FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error) {
 	const sqlQuery = `
 		SELECT user_id
 		FROM user_order 

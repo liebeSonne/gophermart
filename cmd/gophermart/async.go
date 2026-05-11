@@ -6,8 +6,6 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/liebeSonne/gophermart/internal/provider"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
@@ -62,11 +60,11 @@ func NewRetryProducer(
 
 func NewSetupProducer(
 	logger *logrus.Logger,
-	userOrderProvider provider.UserOrderProvider,
+	userOrderProvider service.ExecutedUserOrderProvider,
 	retryProducer async.Producer[string],
-) async.OrderIDsProducer {
+) service.OrderIDsProducer {
 	limit := uint(setupSelectLimit)
-	return async.NewOrderIDsProducer(
+	return service.NewOrderIDsProducer(
 		setupProducerName,
 		setupProducerChannelSize,
 		&limit,
@@ -91,8 +89,8 @@ func NewResultHandler(
 	ctx context.Context,
 	logger *logrus.Logger,
 	retryProducer async.Producer[string],
-	uowFactory uow.UnitOfWorkFactory,
-	userOrderProvider provider.UserOrderProvider,
+	uowFactory service.UnitOfWorkFactory,
+	userOrderProvider service.UserOrderProvider,
 ) async.WorkerHandler[service.OrderIDWorkerResult, struct{}] {
 	worker := service.NewOrderIDResultWorker(
 		ctx,

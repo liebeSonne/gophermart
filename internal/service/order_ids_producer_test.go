@@ -1,7 +1,8 @@
-package async
+package service
 
 import (
 	"context"
+
 	"sort"
 	"testing"
 	"time"
@@ -10,8 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/provider"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
 func TestOrderIDsProducer_Produce(t *testing.T) {
@@ -89,12 +89,12 @@ func TestOrderIDsProducer_Produce(t *testing.T) {
 			ctx, cancel := context.WithCancel(t.Context())
 			defer cancel()
 
-			retryProducer := NewMockProducer[string](t)
+			retryProducer := async.NewMockProducer[string](t)
 			retryProducer.EXPECT().Schedule(mock.Anything, mock.Anything).Return(nil).Maybe()
 
-			userOrderProvider := provider.NewMockUserOrderProvider(t)
+			userOrderProvider := NewMockExecutedUserOrderProvider(t)
 			selectIndex := 0
-			userOrderProvider.EXPECT().FindOrderIDToExecuteAtMap(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ model.FindUserOrderSpecification) (map[string]time.Time, error) {
+			userOrderProvider.EXPECT().FindOrderIDToExecuteAtMap(mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ FindUserOrderSpecification) (map[string]time.Time, error) {
 				if len(tc.when.findOrderIDToExecuteAtMaps)-1 >= selectIndex {
 					resultMap := tc.when.findOrderIDToExecuteAtMaps[selectIndex]
 					selectIndex++

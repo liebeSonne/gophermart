@@ -2,39 +2,40 @@ package service
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
+	"github.com/liebeSonne/gophermart/internal/handler"
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
-var ErrUserOrderAlreadyUploadedByUser = errors.New("user order already uploaded by user")
-var ErrUserOrderAlreadyUploadedByOtherUser = errors.New("user order already uploaded by other user")
-
-type UserOrderService interface {
-	Upload(ctx context.Context, input UploadUserOrderInput) (model.UserOrder, error)
+type UserOrderRepository interface {
+	NextID(ctx context.Context) uuid.UUID
+	Store(ctx context.Context, items []model.UserOrder) error
+	FindByOrderID(ctx context.Context, orderID string) (*model.UserOrder, error)
 }
 
 func NewUserOrderService(
-	uowFactory uow.UnitOfWorkFactory,
+	uowFactory UnitOfWorkFactory,
 	requestProducer async.Producer[string],
-) UserOrderService {
-	return &userOrderService{
+) *UserOrderService {
+	return &UserOrderService{
 		uowFactory:      uowFactory,
 		requestProducer: requestProducer,
 	}
 }
 
-type userOrderService struct {
-	uowFactory      uow.UnitOfWorkFactory
+type UserOrderService struct {
+	uowFactory      UnitOfWorkFactory
 	requestProducer async.Producer[string]
 }
 
-func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInput) (model.UserOrder, error) {
-	err := input.Validate()
+func (u *UserOrderService) Upload(ctx context.Context, input handler.UploadUserOrderInput) (model.UserOrder, error) {
+	validator := uploadUserOrderInputValidator{Input: input}
+	err := validator.Validate()
 	if err != nil {
 		return model.UserOrder{}, fmt.Errorf("invalid upload user order input: %w", err)
 	}
@@ -44,7 +45,7 @@ func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInpu
 	lockName := MakeUserOrderLockName(input.OrderID)
 	lockNames := []string{lockName}
 
-	err = u.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider uow.RepositoryProvider) error {
+	err = u.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider RepositoryProvider) error {
 		repo := provider.UserOrderRepository()
 
 		var userOrderPtr *model.UserOrder
@@ -55,16 +56,16 @@ func (u *userOrderService) Upload(ctx context.Context, input UploadUserOrderInpu
 
 		if userOrderPtr != nil {
 			if userOrderPtr.UserID == input.UserID {
-				return ErrUserOrderAlreadyUploadedByUser
+				return handler.ErrUserOrderAlreadyUploadedByUser
 			}
-			return ErrUserOrderAlreadyUploadedByOtherUser
+			return handler.ErrUserOrderAlreadyUploadedByOtherUser
 		}
 
 		newUserOrder = model.UserOrder{
 			ID:        repo.NextID(ctx),
 			OrderID:   input.OrderID,
 			UserID:    input.UserID,
-			Status:    model.OrderStatusNew,
+			Status:    model.UserOrderStatusNew,
 			Accrual:   nil,
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),

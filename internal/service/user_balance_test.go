@@ -10,9 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/liebeSonne/gophermart/internal/handler"
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 )
 
 func TestUserBalanceService_AddWithdrawn(t *testing.T) {
@@ -30,7 +29,7 @@ func TestUserBalanceService_AddWithdrawn(t *testing.T) {
 		storeBalanceErr   error
 	}
 	type on struct {
-		input AddWithdrawnInput
+		input handler.AddWithdrawnInput
 	}
 	type want struct {
 		err error
@@ -43,67 +42,67 @@ func TestUserBalanceService_AddWithdrawn(t *testing.T) {
 	}{
 		{
 			"invalid input userID",
-			on{AddWithdrawnInput{uuid.Nil, orderID1, amountPositive1}},
+			on{handler.AddWithdrawnInput{UserID: uuid.Nil, OrderID: orderID1, Amount: amountPositive1}},
 			when{},
-			want{ErrInvalidUserID},
+			want{handler.ErrInvalidUserID},
 		},
 		{
 			"empty input orderID",
-			on{AddWithdrawnInput{userID1, "", amountPositive1}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: "", Amount: amountPositive1}},
 			when{},
-			want{ErrInvalidOrderID},
+			want{handler.ErrInvalidOrderID},
 		},
 		{
 			"invalid input orderID",
-			on{AddWithdrawnInput{userID1, invalidOrderID1, amountPositive1}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: invalidOrderID1, Amount: amountPositive1}},
 			when{},
-			want{ErrInvalidOrderID},
+			want{handler.ErrInvalidOrderID},
 		},
 		{
 			"invalid input amount",
-			on{AddWithdrawnInput{userID1, orderID1, amountNegative1}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: amountNegative1}},
 			when{},
-			want{ErrInvalidWithdrawnAmount},
+			want{handler.ErrInvalidWithdrawnAmount},
 		},
 		{
 			"error on get user balance",
-			on{AddWithdrawnInput{userID1, orderID1, amountPositive1}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: amountPositive1}},
 			when{getBalanceErr: error1},
 			want{error1},
 		},
 		{
 			"balance in not enough",
-			on{AddWithdrawnInput{userID1, orderID1, decimal.NewFromFloat(300.30)}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: decimal.NewFromFloat(300.30)}},
 			when{getBalance: model.UserBalance{UserID: userID1, Balance: decimal.NewFromFloat(100.10), WithdrawnSum: decimal.Zero}},
-			want{ErrUserBalanceIsNotEnough},
+			want{handler.ErrUserBalanceIsNotEnough},
 		},
 		{
 			"error on store withdrawn",
-			on{AddWithdrawnInput{userID1, orderID1, decimal.NewFromFloat(10.30)}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: decimal.NewFromFloat(10.30)}},
 			when{getBalance: model.UserBalance{UserID: userID1, Balance: decimal.NewFromFloat(100.10), WithdrawnSum: decimal.Zero}, storeWithdrawnErr: error1},
 			want{error1},
 		},
 		{
 			"error on store balance",
-			on{AddWithdrawnInput{userID1, orderID1, decimal.NewFromFloat(10.30)}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: decimal.NewFromFloat(10.30)}},
 			when{getBalance: model.UserBalance{UserID: userID1, Balance: decimal.NewFromFloat(100.10), WithdrawnSum: decimal.Zero}, storeBalanceErr: error1},
 			want{error1},
 		},
 		{
 			"success on positive input amount",
-			on{AddWithdrawnInput{userID1, orderID1, decimal.NewFromFloat(10.30)}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: decimal.NewFromFloat(10.30)}},
 			when{getBalance: model.UserBalance{UserID: userID1, Balance: decimal.NewFromFloat(100.10), WithdrawnSum: decimal.Zero}},
 			want{nil},
 		},
 		{
 			"success on positive input amount and positive withdrawn sum",
-			on{AddWithdrawnInput{userID1, orderID1, decimal.NewFromFloat(10.30)}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: decimal.NewFromFloat(10.30)}},
 			when{getBalance: model.UserBalance{UserID: userID1, Balance: decimal.NewFromFloat(100.10), WithdrawnSum: decimal.NewFromFloat(300.30)}},
 			want{nil},
 		},
 		{
 			"success on zero input amount",
-			on{AddWithdrawnInput{userID1, orderID1, decimal.Zero}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: decimal.Zero}},
 			when{getBalance: model.UserBalance{UserID: userID1, Balance: decimal.NewFromFloat(100.10), WithdrawnSum: decimal.Zero}},
 			want{nil},
 		},
@@ -111,20 +110,20 @@ func TestUserBalanceService_AddWithdrawn(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			userBalanceRepository := repository.NewMockUserBalanceRepository(t)
+			userBalanceRepository := NewMockUserBalanceRepository(t)
 			userBalanceRepository.EXPECT().GetByUserID(t.Context(), mock.Anything).Return(tc.when.getBalance, tc.when.getBalanceErr).Maybe()
 			userBalanceRepository.EXPECT().Store(t.Context(), mock.Anything).Return(tc.when.storeBalanceErr).Maybe()
 
-			userBalanceWithdrawnRepository := repository.NewMockUserBalanceWithdrawnRepository(t)
+			userBalanceWithdrawnRepository := NewMockUserBalanceWithdrawnRepository(t)
 			userBalanceWithdrawnRepository.EXPECT().NextID(t.Context()).Return(uuid.New()).Maybe()
 			userBalanceWithdrawnRepository.EXPECT().Store(t.Context(), mock.Anything).Return(tc.when.storeWithdrawnErr).Maybe()
 
-			repositoryProvider := uow.NewMockRepositoryProvider(t)
+			repositoryProvider := NewMockRepositoryProvider(t)
 			repositoryProvider.EXPECT().UserBalanceRepository().Return(userBalanceRepository).Maybe()
 			repositoryProvider.EXPECT().UserBalanceWithdrawnRepository().Return(userBalanceWithdrawnRepository).Maybe()
 
-			uowFactory := uow.NewMockUnitOfWorkFactory(t)
-			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider uow.RepositoryProvider) error) error {
+			uowFactory := NewMockUnitOfWorkFactory(t)
+			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider RepositoryProvider) error) error {
 				return fn(repositoryProvider)
 			}).Maybe()
 

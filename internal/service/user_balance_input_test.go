@@ -6,6 +6,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/require"
+
+	"github.com/liebeSonne/gophermart/internal/handler"
 )
 
 func TestAddWithdrawnInput_Validate(t *testing.T) {
@@ -17,7 +19,7 @@ func TestAddWithdrawnInput_Validate(t *testing.T) {
 	amountZero := decimal.Zero
 
 	type on struct {
-		input AddWithdrawnInput
+		input handler.AddWithdrawnInput
 	}
 	type want struct {
 		err error
@@ -29,39 +31,40 @@ func TestAddWithdrawnInput_Validate(t *testing.T) {
 	}{
 		{
 			"positive amount",
-			on{AddWithdrawnInput{userID1, orderID1, amountPositive1}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: amountPositive1}},
 			want{nil},
 		},
 		{
 			"zero amount",
-			on{AddWithdrawnInput{userID1, orderID1, amountZero}},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: amountZero}},
 			want{nil},
 		},
 		{
 			"negative amount",
-			on{AddWithdrawnInput{userID1, orderID1, amountNegative1}},
-			want{ErrInvalidWithdrawnAmount},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: orderID1, Amount: amountNegative1}},
+			want{handler.ErrInvalidWithdrawnAmount},
 		},
 		{
 			"empty order id",
-			on{AddWithdrawnInput{userID1, "", amountPositive1}},
-			want{ErrInvalidOrderID},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: "", Amount: amountPositive1}},
+			want{handler.ErrInvalidOrderID},
 		},
 		{
 			"invalid order id",
-			on{AddWithdrawnInput{userID1, invalidOrderID1, amountPositive1}},
-			want{ErrInvalidOrderID},
+			on{handler.AddWithdrawnInput{UserID: userID1, OrderID: invalidOrderID1, Amount: amountPositive1}},
+			want{handler.ErrInvalidOrderID},
 		},
 		{
 			"userID is nil",
-			on{AddWithdrawnInput{uuid.Nil, orderID1, amountPositive1}},
-			want{ErrInvalidUserID},
+			on{handler.AddWithdrawnInput{UserID: uuid.Nil, OrderID: orderID1, Amount: amountPositive1}},
+			want{handler.ErrInvalidUserID},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.on.input.Validate()
+			validator := addWithdrawnInputValidator{Input: tc.on.input}
+			err := validator.Validate()
 
 			if tc.want.err != nil {
 				require.Error(t, err)

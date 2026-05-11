@@ -2,40 +2,33 @@ package uow
 
 import (
 	"github.com/liebeSonne/gophermart/internal/repository"
-	"github.com/liebeSonne/gophermart/internal/repository/database"
+	"github.com/liebeSonne/gophermart/internal/service"
 )
 
-type RepositoryProvider interface {
-	UserRepository() repository.UserRepository
-	UserOrderRepository() repository.UserOrderRepository
-	UserBalanceRepository() repository.UserBalanceRepository
-	UserBalanceWithdrawnRepository() repository.UserBalanceWithdrawnRepository
-}
-
 func NewRepositoryProvider(
-	client database.ContextClient,
-) RepositoryProvider {
+	client repository.ContextClient,
+) service.RepositoryProvider {
 	return &repositoryProvider{
 		client: client,
 	}
 }
 
 type repositoryProvider struct {
-	client database.ContextClient
+	client repository.ContextClient
 }
 
-func (u *repositoryProvider) UserRepository() repository.UserRepository {
+func (u *repositoryProvider) UserRepository() service.UserRepository {
 	return repository.NewUserRepository(u.client)
 }
 
-func (u *repositoryProvider) UserOrderRepository() repository.UserOrderRepository {
+func (u *repositoryProvider) UserOrderRepository() service.UserOrderRepository {
 	return repository.NewUserOrderRepository(u.client)
 }
 
-func (u *repositoryProvider) UserBalanceRepository() repository.UserBalanceRepository {
+func (u *repositoryProvider) UserBalanceRepository() service.UserBalanceRepository {
 	return repository.NewUserBalanceRepository(u.client)
 }
 
-func (u *repositoryProvider) UserBalanceWithdrawnRepository() repository.UserBalanceWithdrawnRepository {
+func (u *repositoryProvider) UserBalanceWithdrawnRepository() service.UserBalanceWithdrawnRepository {
 	return repository.NewUserBalanceWithdrawnRepository(u.client)
 }

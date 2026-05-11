@@ -8,15 +8,13 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-)
 
-type UnitOfWorkFactory interface {
-	ExecuteWithUnitOfWork(ctx context.Context, lockNames []string, fn func(provider RepositoryProvider) error) error
-}
+	"github.com/liebeSonne/gophermart/internal/service"
+)
 
 func NewUnitOfWorkFactory(
 	pool *pgxpool.Pool,
-) UnitOfWorkFactory {
+) service.UnitOfWorkFactory {
 	return &unitOfWorkFactory{
 		pool: pool,
 	}
@@ -26,7 +24,7 @@ type unitOfWorkFactory struct {
 	pool *pgxpool.Pool
 }
 
-func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, lockNames []string, fn func(provider RepositoryProvider) error) (err error) {
+func (f *unitOfWorkFactory) ExecuteWithUnitOfWork(ctx context.Context, lockNames []string, fn func(provider service.RepositoryProvider) error) (err error) {
 	tx, err := f.pool.BeginTx(ctx, pgx.TxOptions{})
 	if err != nil {
 		return fmt.Errorf("error on begin transaction: %w", err)

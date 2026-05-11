@@ -5,40 +5,45 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/google/uuid"
+
+	"github.com/liebeSonne/gophermart/internal/handler"
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/provider"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 )
 
-var ErrUserLoginExists = errors.New("user login exists")
 var ErrUserNotFound = errors.New("user not found")
-var ErrNotValidUserLoginPassword = errors.New("not valid user login password")
 
-type UserService interface {
-	Create(ctx context.Context, input CreateUserInput) (model.User, error)
-	Login(ctx context.Context, input LoginUserInput) (model.User, error)
+type UserRepository interface {
+	NextID(ctx context.Context) uuid.UUID
+	Store(ctx context.Context, user model.User) error
+	FindByLogin(ctx context.Context, login string) (*model.User, error)
+}
+
+type UserProvider interface {
+	FindByLogin(ctx context.Context, login string) (*model.User, error)
 }
 
 func NewUserService(
-	uowFactory uow.UnitOfWorkFactory,
+	uowFactory UnitOfWorkFactory,
 	passwordService PasswordService,
-	userProvider provider.UserProvider,
-) UserService {
-	return &userService{
+	userProvider UserProvider,
+) *UserService {
+	return &UserService{
 		uowFactory:      uowFactory,
 		passwordService: passwordService,
 		userProvider:    userProvider,
 	}
 }
 
-type userService struct {
-	uowFactory      uow.UnitOfWorkFactory
+type UserService struct {
+	uowFactory      UnitOfWorkFactory
 	passwordService PasswordService
-	userProvider    provider.UserProvider
+	userProvider    UserProvider
 }
 
-func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.User, error) {
-	err := input.Validate()
+func (s *UserService) Create(ctx context.Context, input handler.CreateUserInput) (model.User, error) {
+	validator := createUserInputValidator{Input: input}
+	err := validator.Validate()
 	if err != nil {
 		return model.User{}, fmt.Errorf("invalid create user input: %w", err)
 	}
@@ -53,7 +58,7 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 	lockName := MakeUsersLockName()
 	lockNames := []string{lockName}
 
-	err = s.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider uow.RepositoryProvider) error {
+	err = s.uowFactory.ExecuteWithUnitOfWork(ctx, lockNames, func(provider RepositoryProvider) error {
 		userRepository := provider.UserRepository()
 
 		var userPtr *model.User
@@ -62,7 +67,7 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 			return err
 		}
 		if userPtr != nil {
-			return ErrUserLoginExists
+			return handler.ErrUserLoginExists
 		}
 
 		userID := userRepository.NextID(ctx)
@@ -82,8 +87,9 @@ func (s *userService) Create(ctx context.Context, input CreateUserInput) (model.
 	return newUser, nil
 }
 
-func (s *userService) Login(ctx context.Context, input LoginUserInput) (model.User, error) {
-	err := input.Validate()
+func (s *UserService) Login(ctx context.Context, input handler.LoginUserInput) (model.User, error) {
+	validator := loginUserInputValidator{Input: input}
+	err := validator.Validate()
 	if err != nil {
 		return model.User{}, fmt.Errorf("invalid login user input: %w", err)
 	}
@@ -93,7 +99,7 @@ func (s *userService) Login(ctx context.Context, input LoginUserInput) (model.Us
 		return model.User{}, err
 	}
 	if user == nil {
-		return model.User{}, fmt.Errorf("not found user by login '%s': %w", input.Login, ErrUserNotFound)
+		return model.User{}, fmt.Errorf("not found user by login '%s': %w", input.Login, handler.ErrUserNotFound)
 	}
 
 	ok, err := s.passwordService.CheckHash(ctx, input.Password, user.PassHash)
@@ -102,7 +108,7 @@ func (s *userService) Login(ctx context.Context, input LoginUserInput) (model.Us
 	}
 
 	if !ok {
-		return model.User{}, ErrNotValidUserLoginPassword
+		return model.User{}, handler.ErrNotValidUserLoginPassword
 	}
 
 	return *user, nil

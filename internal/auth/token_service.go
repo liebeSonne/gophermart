@@ -10,27 +10,22 @@ import (
 
 var ErrTokenIsNotValid = errors.New("token is not valid")
 
-type TokenService interface {
-	Create(tokenData Token) (string, error)
-	Parse(tokenString string) (Token, error)
-}
-
 func NewTokenService(
 	secretKey string,
 	tokenExpiry time.Duration,
-) TokenService {
-	return &tokenServiceImpl{
+) *TokenService {
+	return &TokenService{
 		secretKey:   secretKey,
 		tokenExpiry: tokenExpiry,
 	}
 }
 
-type tokenServiceImpl struct {
+type TokenService struct {
 	secretKey   string
 	tokenExpiry time.Duration
 }
 
-func (s *tokenServiceImpl) Create(tokenData Token) (string, error) {
+func (s *TokenService) Create(tokenData Token) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, Claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.tokenExpiry)),
@@ -46,7 +41,7 @@ func (s *tokenServiceImpl) Create(tokenData Token) (string, error) {
 	return tokenString, nil
 }
 
-func (s *tokenServiceImpl) Parse(tokenString string) (Token, error) {
+func (s *TokenService) Parse(tokenString string) (Token, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(t *jwt.Token) (interface{}, error) {
 		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {

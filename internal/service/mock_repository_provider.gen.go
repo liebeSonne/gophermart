@@ -2,10 +2,9 @@
 // github.com/vektra/mockery
 // template: testify
 
-package uow
+package service
 
 import (
-	"github.com/liebeSonne/gophermart/internal/repository"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -37,19 +36,19 @@ func (_m *MockRepositoryProvider) EXPECT() *MockRepositoryProvider_Expecter {
 }
 
 // UserBalanceRepository provides a mock function for the type MockRepositoryProvider
-func (_mock *MockRepositoryProvider) UserBalanceRepository() repository.UserBalanceRepository {
+func (_mock *MockRepositoryProvider) UserBalanceRepository() UserBalanceRepository {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for UserBalanceRepository")
 	}
 
-	var r0 repository.UserBalanceRepository
-	if returnFunc, ok := ret.Get(0).(func() repository.UserBalanceRepository); ok {
+	var r0 UserBalanceRepository
+	if returnFunc, ok := ret.Get(0).(func() UserBalanceRepository); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(repository.UserBalanceRepository)
+			r0 = ret.Get(0).(UserBalanceRepository)
 		}
 	}
 	return r0
@@ -72,30 +71,30 @@ func (_c *MockRepositoryProvider_UserBalanceRepository_Call) Run(run func()) *Mo
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserBalanceRepository_Call) Return(userBalanceRepository repository.UserBalanceRepository) *MockRepositoryProvider_UserBalanceRepository_Call {
+func (_c *MockRepositoryProvider_UserBalanceRepository_Call) Return(userBalanceRepository UserBalanceRepository) *MockRepositoryProvider_UserBalanceRepository_Call {
 	_c.Call.Return(userBalanceRepository)
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserBalanceRepository_Call) RunAndReturn(run func() repository.UserBalanceRepository) *MockRepositoryProvider_UserBalanceRepository_Call {
+func (_c *MockRepositoryProvider_UserBalanceRepository_Call) RunAndReturn(run func() UserBalanceRepository) *MockRepositoryProvider_UserBalanceRepository_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UserBalanceWithdrawnRepository provides a mock function for the type MockRepositoryProvider
-func (_mock *MockRepositoryProvider) UserBalanceWithdrawnRepository() repository.UserBalanceWithdrawnRepository {
+func (_mock *MockRepositoryProvider) UserBalanceWithdrawnRepository() UserBalanceWithdrawnRepository {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for UserBalanceWithdrawnRepository")
 	}
 
-	var r0 repository.UserBalanceWithdrawnRepository
-	if returnFunc, ok := ret.Get(0).(func() repository.UserBalanceWithdrawnRepository); ok {
+	var r0 UserBalanceWithdrawnRepository
+	if returnFunc, ok := ret.Get(0).(func() UserBalanceWithdrawnRepository); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(repository.UserBalanceWithdrawnRepository)
+			r0 = ret.Get(0).(UserBalanceWithdrawnRepository)
 		}
 	}
 	return r0
@@ -118,30 +117,30 @@ func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) Run(run fu
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) Return(userBalanceWithdrawnRepository repository.UserBalanceWithdrawnRepository) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
+func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) Return(userBalanceWithdrawnRepository UserBalanceWithdrawnRepository) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
 	_c.Call.Return(userBalanceWithdrawnRepository)
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) RunAndReturn(run func() repository.UserBalanceWithdrawnRepository) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
+func (_c *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call) RunAndReturn(run func() UserBalanceWithdrawnRepository) *MockRepositoryProvider_UserBalanceWithdrawnRepository_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UserOrderRepository provides a mock function for the type MockRepositoryProvider
-func (_mock *MockRepositoryProvider) UserOrderRepository() repository.UserOrderRepository {
+func (_mock *MockRepositoryProvider) UserOrderRepository() UserOrderRepository {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for UserOrderRepository")
 	}
 
-	var r0 repository.UserOrderRepository
-	if returnFunc, ok := ret.Get(0).(func() repository.UserOrderRepository); ok {
+	var r0 UserOrderRepository
+	if returnFunc, ok := ret.Get(0).(func() UserOrderRepository); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(repository.UserOrderRepository)
+			r0 = ret.Get(0).(UserOrderRepository)
 		}
 	}
 	return r0
@@ -164,30 +163,30 @@ func (_c *MockRepositoryProvider_UserOrderRepository_Call) Run(run func()) *Mock
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserOrderRepository_Call) Return(userOrderRepository repository.UserOrderRepository) *MockRepositoryProvider_UserOrderRepository_Call {
+func (_c *MockRepositoryProvider_UserOrderRepository_Call) Return(userOrderRepository UserOrderRepository) *MockRepositoryProvider_UserOrderRepository_Call {
 	_c.Call.Return(userOrderRepository)
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserOrderRepository_Call) RunAndReturn(run func() repository.UserOrderRepository) *MockRepositoryProvider_UserOrderRepository_Call {
+func (_c *MockRepositoryProvider_UserOrderRepository_Call) RunAndReturn(run func() UserOrderRepository) *MockRepositoryProvider_UserOrderRepository_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // UserRepository provides a mock function for the type MockRepositoryProvider
-func (_mock *MockRepositoryProvider) UserRepository() repository.UserRepository {
+func (_mock *MockRepositoryProvider) UserRepository() UserRepository {
 	ret := _mock.Called()
 
 	if len(ret) == 0 {
 		panic("no return value specified for UserRepository")
 	}
 
-	var r0 repository.UserRepository
-	if returnFunc, ok := ret.Get(0).(func() repository.UserRepository); ok {
+	var r0 UserRepository
+	if returnFunc, ok := ret.Get(0).(func() UserRepository); ok {
 		r0 = returnFunc()
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(repository.UserRepository)
+			r0 = ret.Get(0).(UserRepository)
 		}
 	}
 	return r0
@@ -210,12 +209,12 @@ func (_c *MockRepositoryProvider_UserRepository_Call) Run(run func()) *MockRepos
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserRepository_Call) Return(userRepository repository.UserRepository) *MockRepositoryProvider_UserRepository_Call {
+func (_c *MockRepositoryProvider_UserRepository_Call) Return(userRepository UserRepository) *MockRepositoryProvider_UserRepository_Call {
 	_c.Call.Return(userRepository)
 	return _c
 }
 
-func (_c *MockRepositoryProvider_UserRepository_Call) RunAndReturn(run func() repository.UserRepository) *MockRepositoryProvider_UserRepository_Call {
+func (_c *MockRepositoryProvider_UserRepository_Call) RunAndReturn(run func() UserRepository) *MockRepositoryProvider_UserRepository_Call {
 	_c.Call.Return(run)
 	return _c
 }

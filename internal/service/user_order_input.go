@@ -6,22 +6,20 @@ import (
 	"strconv"
 
 	"github.com/google/uuid"
+
+	"github.com/liebeSonne/gophermart/internal/handler"
 )
 
-var ErrInvalidOrderID = errors.New("invalid order ID")
-var ErrInvalidUserID = errors.New("invalid user id")
-
-type UploadUserOrderInput struct {
-	OrderID string
-	UserID  uuid.UUID
+type uploadUserOrderInputValidator struct {
+	Input handler.UploadUserOrderInput
 }
 
-func (i *UploadUserOrderInput) Validate() error {
-	if i.UserID == uuid.Nil {
-		return ErrInvalidUserID
+func (i *uploadUserOrderInputValidator) Validate() error {
+	if i.Input.UserID == uuid.Nil {
+		return handler.ErrInvalidUserID
 	}
 
-	err := validateOrderID(i.OrderID)
+	err := validateOrderID(i.Input.OrderID)
 	if err != nil {
 		return err
 	}
@@ -31,15 +29,15 @@ func (i *UploadUserOrderInput) Validate() error {
 
 func validateOrderID(orderID string) error {
 	if orderID == "" {
-		return ErrInvalidOrderID
+		return handler.ErrInvalidOrderID
 	}
 
 	isValid, err := validLuhn(orderID)
 	if err != nil {
-		return errors.Join(ErrInvalidOrderID, fmt.Errorf("error validating luhn: %w", err))
+		return errors.Join(handler.ErrInvalidOrderID, fmt.Errorf("error validating luhn: %w", err))
 	}
 	if !isValid {
-		return fmt.Errorf("invalid lumn order ID (%v): %w", orderID, ErrInvalidOrderID)
+		return fmt.Errorf("invalid lumn order ID (%v): %w", orderID, handler.ErrInvalidOrderID)
 	}
 
 	return nil

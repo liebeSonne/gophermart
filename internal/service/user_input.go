@@ -1,56 +1,52 @@
 package service
 
 import (
-	"errors"
 	"fmt"
 	"unicode/utf8"
-)
 
-var ErrInvalidUserLogin = errors.New("invalid user login")
-var ErrInvalidUserPassword = errors.New("invalid user password")
+	"github.com/liebeSonne/gophermart/internal/handler"
+)
 
 const MaxUserLoginLength = 255
 const MaxUserPasswordLength = 255
 
-type CreateUserInput struct {
-	Login    string
-	Password string `json:"-"`
+type createUserInputValidator struct {
+	Input handler.CreateUserInput
 }
 
-type LoginUserInput struct {
-	Login    string
-	Password string `json:"-"`
-}
-
-func (i *CreateUserInput) Validate() error {
-	if i.Login == "" {
-		return fmt.Errorf("empty user login: %w", ErrInvalidUserLogin)
+func (v *createUserInputValidator) Validate() error {
+	if v.Input.Login == "" {
+		return fmt.Errorf("empty user login: %w", handler.ErrInvalidUserLogin)
 	}
 
-	loginLength := utf8.RuneCountInString(i.Login)
+	loginLength := utf8.RuneCountInString(v.Input.Login)
 	if loginLength > MaxUserLoginLength {
-		return fmt.Errorf("invalid user login '%s' length '%d': %w", i.Login, loginLength, ErrInvalidUserLogin)
+		return fmt.Errorf("invalid user login '%s' length '%d': %w", v.Input.Login, loginLength, handler.ErrInvalidUserLogin)
 	}
 
-	if i.Password == "" {
-		return fmt.Errorf("empty user password: %w", ErrInvalidUserPassword)
+	if v.Input.Password == "" {
+		return fmt.Errorf("empty user password: %w", handler.ErrInvalidUserPassword)
 	}
 
-	passwordLength := utf8.RuneCountInString(i.Password)
+	passwordLength := utf8.RuneCountInString(v.Input.Password)
 	if passwordLength > MaxUserPasswordLength {
-		return fmt.Errorf("invalid user password length '%d': %w", passwordLength, ErrInvalidUserLogin)
+		return fmt.Errorf("invalid user password length '%d': %w", passwordLength, handler.ErrInvalidUserLogin)
 	}
 
 	return nil
 }
 
-func (i *LoginUserInput) Validate() error {
-	if i.Login == "" {
-		return fmt.Errorf("empty user login: %w", ErrInvalidUserLogin)
+type loginUserInputValidator struct {
+	Input handler.LoginUserInput
+}
+
+func (v *loginUserInputValidator) Validate() error {
+	if v.Input.Login == "" {
+		return fmt.Errorf("empty user login: %w", handler.ErrInvalidUserLogin)
 	}
 
-	if i.Password == "" {
-		return fmt.Errorf("empty user password: %w", ErrInvalidUserPassword)
+	if v.Input.Password == "" {
+		return fmt.Errorf("empty user password: %w", handler.ErrInvalidUserPassword)
 	}
 
 	return nil

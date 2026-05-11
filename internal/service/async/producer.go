@@ -10,6 +10,7 @@ import (
 
 type CancelFunc func() bool
 
+// Producer - поставщик канала данных с типом T
 type Producer[T any] interface {
 	Start(ctx context.Context)
 	Stop() bool

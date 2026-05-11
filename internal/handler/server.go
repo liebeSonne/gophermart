@@ -11,46 +11,43 @@ import (
 
 	"github.com/liebeSonne/gophermart/api/server"
 	"github.com/liebeSonne/gophermart/internal/auth"
-	"github.com/liebeSonne/gophermart/internal/handler/cookie"
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/provider"
-	"github.com/liebeSonne/gophermart/internal/service"
 )
 
 func NewServer(
-	userService service.UserService,
-	userOrderService service.UserOrderService,
-	userOrderProvider provider.UserOrderProvider,
-	userBalanceProvider provider.UserBalanceProvider,
-	userBalanceService service.UserBalanceService,
-	userBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider,
-	tokenService auth.TokenService,
-	cookieService cookie.Service,
+	userService UserService,
+	userOrderService UserOrderService,
+	userOrderQueryService UserOrderQueryService,
+	userBalanceQueryService UserBalanceQueryService,
+	userBalanceService UserBalanceService,
+	userBalanceWithDrawnQueryService UserBalanceWithDrawnQueryService,
+	tokenService TokenService,
+	cookieService CookieService,
 	logger *logrus.Logger,
 ) server.ServerInterface {
 	return &Server{
-		userService:                  userService,
-		userOrderService:             userOrderService,
-		userOrderProvider:            userOrderProvider,
-		userBalanceProvider:          userBalanceProvider,
-		userBalanceService:           userBalanceService,
-		userBalanceWithDrawnProvider: userBalanceWithDrawnProvider,
-		tokenService:                 tokenService,
-		cookieService:                cookieService,
-		logger:                       logger,
+		userService:                      userService,
+		userOrderService:                 userOrderService,
+		userOrderQueryService:            userOrderQueryService,
+		userBalanceQueryService:          userBalanceQueryService,
+		userBalanceService:               userBalanceService,
+		userBalanceWithDrawnQueryService: userBalanceWithDrawnQueryService,
+		tokenService:                     tokenService,
+		cookieService:                    cookieService,
+		logger:                           logger,
 	}
 }
 
 type Server struct {
-	userService                  service.UserService
-	userOrderService             service.UserOrderService
-	userOrderProvider            provider.UserOrderProvider
-	userBalanceProvider          provider.UserBalanceProvider
-	userBalanceService           service.UserBalanceService
-	userBalanceWithDrawnProvider provider.UserBalanceWithDrawnProvider
-	tokenService                 auth.TokenService
-	cookieService                cookie.Service
-	logger                       *logrus.Logger
+	userService                      UserService
+	userOrderService                 UserOrderService
+	userOrderQueryService            UserOrderQueryService
+	userBalanceQueryService          UserBalanceQueryService
+	userBalanceService               UserBalanceService
+	userBalanceWithDrawnQueryService UserBalanceWithDrawnQueryService
+	tokenService                     TokenService
+	cookieService                    CookieService
+	logger                           *logrus.Logger
 }
 
 //nolint:dupl
@@ -65,14 +62,14 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := service.CreateUserInput{
+	input := CreateUserInput{
 		Login:    userCredentials.Login,
 		Password: userCredentials.Password,
 	}
 
 	user, err := s.userService.Create(ctx, input)
 	if err != nil {
-		if errors.Is(err, service.ErrUserLoginExists) {
+		if errors.Is(err, ErrUserLoginExists) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
@@ -105,14 +102,14 @@ func (s *Server) LoginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := service.LoginUserInput{
+	input := LoginUserInput{
 		Login:    userCredentials.Login,
 		Password: userCredentials.Password,
 	}
 
 	user, err := s.userService.Login(ctx, input)
 	if err != nil {
-		if errors.Is(err, service.ErrNotValidUserLoginPassword) || errors.Is(err, service.ErrUserNotFound) {
+		if errors.Is(err, ErrNotValidUserLoginPassword) || errors.Is(err, ErrUserNotFound) {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
 			return
 		}
@@ -149,22 +146,22 @@ func (s *Server) UploadUserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := service.UploadUserOrderInput{
+	input := UploadUserOrderInput{
 		OrderID: orderID,
 		UserID:  userID,
 	}
 
 	_, err = s.userOrderService.Upload(ctx, input)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidOrderID) {
+		if errors.Is(err, ErrInvalidOrderID) {
 			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
-		if errors.Is(err, service.ErrUserOrderAlreadyUploadedByOtherUser) {
+		if errors.Is(err, ErrUserOrderAlreadyUploadedByOtherUser) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
-		if errors.Is(err, service.ErrUserOrderAlreadyUploadedByUser) {
+		if errors.Is(err, ErrUserOrderAlreadyUploadedByUser) {
 			w.WriteHeader(http.StatusOK)
 			return
 		}
@@ -189,7 +186,7 @@ func (s *Server) GetUserOrders(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := s.userOrderProvider.FindByUserID(ctx, userID)
+	items, err := s.userOrderQueryService.FindByUserID(ctx, userID)
 	if err != nil {
 		s.logger.WithError(err).Errorf("error getting user (userID: %s) orders", userID)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -231,7 +228,7 @@ func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userBalance, err := s.userBalanceProvider.GetByUserID(ctx, userID)
+	userBalance, err := s.userBalanceQueryService.GetByUserID(ctx, userID)
 	if err != nil {
 		s.logger.WithError(err).Errorf("error getting user (userID: %s) balance", userID)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -274,7 +271,7 @@ func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	input := service.AddWithdrawnInput{
+	input := AddWithdrawnInput{
 		UserID:  userID,
 		OrderID: withdrawnBalanceRequest.Order,
 		Amount:  decimal.NewFromFloat(withdrawnBalanceRequest.Sum),
@@ -282,11 +279,11 @@ func (s *Server) WithdrawUserBalance(w http.ResponseWriter, r *http.Request) {
 
 	err = s.userBalanceService.AddWithdrawn(ctx, input)
 	if err != nil {
-		if errors.Is(err, service.ErrInvalidOrderID) {
+		if errors.Is(err, ErrInvalidOrderID) {
 			http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
 			return
 		}
-		if errors.Is(err, service.ErrUserBalanceIsNotEnough) {
+		if errors.Is(err, ErrUserBalanceIsNotEnough) {
 			http.Error(w, http.StatusText(http.StatusPaymentRequired), http.StatusPaymentRequired)
 			return
 		}
@@ -311,7 +308,7 @@ func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	items, err := s.userBalanceWithDrawnProvider.FindByUserID(ctx, userID)
+	items, err := s.userBalanceWithDrawnQueryService.FindByUserID(ctx, userID)
 	if err != nil {
 		s.logger.WithError(err).Errorf("error getting user (userID: %s) balance withdrawn", userID)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

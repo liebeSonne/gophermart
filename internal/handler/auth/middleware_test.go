@@ -14,7 +14,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/liebeSonne/gophermart/internal/auth"
-	"github.com/liebeSonne/gophermart/internal/handler/cookie"
 )
 
 func TestNewAuthMiddleware(t *testing.T) {
@@ -60,10 +59,10 @@ func TestNewAuthMiddleware(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			tokenService := auth.NewMockTokenService(t)
+			tokenService := NewMockTokenService(t)
 			tokenService.EXPECT().Parse(mock.Anything).Return(tc.when.parseTokenData, tc.when.parseTokenErr).Maybe()
 
-			cookieService := cookie.NewMockService(t)
+			cookieService := NewMockCookieService(t)
 			cookieService.EXPECT().GetAuthToken(mock.Anything).Return(tc.when.getTokenString, tc.when.getTokenErr)
 
 			contextUserID := uuid.Nil

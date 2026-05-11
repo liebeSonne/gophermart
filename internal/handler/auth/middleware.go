@@ -6,13 +6,20 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/auth"
-	"github.com/liebeSonne/gophermart/internal/handler/cookie"
 )
+
+type TokenService interface {
+	Parse(tokenString string) (auth.Token, error)
+}
+
+type CookieService interface {
+	GetAuthToken(r *http.Request) (string, error)
+}
 
 func NewAuthMiddleware(
 	next http.Handler,
-	tokenService auth.TokenService,
-	cookieService cookie.Service,
+	tokenService TokenService,
+	cookieService CookieService,
 	logger *logrus.Logger,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

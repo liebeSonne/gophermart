@@ -6,14 +6,19 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/provider"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
+
+var ErrUnknownAccrualOrderStatus = errors.New("unknown accrual order status")
+
+type UserOrderProvider interface {
+	FindUserIDByOrderID(ctx context.Context, orderID string) (*uuid.UUID, error)
+}
 
 // NewOrderIDResultWorker - обработчик результатов проверки заказов
 // retryDelay - интервал для повторной попытки обработки заявки (при не финальном статусе и при ошибке)
@@ -25,8 +30,8 @@ func NewOrderIDResultWorker(
 	retryDelay time.Duration,
 	tooManyRetriesDelay time.Duration,
 	retryProducer async.Producer[string],
-	uowFactory uow.UnitOfWorkFactory,
-	userOrderProvider provider.UserOrderProvider,
+	uowFactory UnitOfWorkFactory,
+	userOrderProvider UserOrderProvider,
 	logger *logrus.Logger,
 ) async.Worker[OrderIDWorkerResult, struct{}] {
 	return &orderIDResultWorker{
@@ -47,8 +52,8 @@ type orderIDResultWorker struct {
 	retryDelay          time.Duration
 	tooManyRetriesDelay time.Duration
 	retryProducer       async.Producer[string]
-	uowFactory          uow.UnitOfWorkFactory
-	userOrderProvider   provider.UserOrderProvider
+	uowFactory          UnitOfWorkFactory
+	userOrderProvider   UserOrderProvider
 	logger              *logrus.Logger
 }
 
@@ -69,7 +74,7 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 		return
 	}
 
-	var newOrderStatusPtr *model.OrderStatus
+	var newOrderStatusPtr *model.UserOrderStatus
 	newOrderStatusPtr, err := w.calculateNewOrderStatus(result.OrderID, result.Status)
 	if err != nil {
 		w.logger.Debugf("'%s' worker do retry order (%v) on new status error (%v)", w.name, result.OrderID, err)
@@ -96,7 +101,7 @@ func (w *orderIDResultWorker) Handle(result OrderIDWorkerResult, _ chan<- struct
 		MakeUserBalanceLockName(*userIDPtr),
 	}
 
-	err = w.uowFactory.ExecuteWithUnitOfWork(w.ctx, lockNames, func(repositoryProvider uow.RepositoryProvider) error {
+	err = w.uowFactory.ExecuteWithUnitOfWork(w.ctx, lockNames, func(repositoryProvider RepositoryProvider) error {
 		doRetry, executeAtDelay, err = w.updateUserOrder(result.OrderID, newOrderStatusPtr, result.Accrual, repositoryProvider)
 		return err
 	})
@@ -130,10 +135,10 @@ func (w *orderIDResultWorker) calculateExecuteAtDelay(err error) time.Duration {
 	return w.retryDelay
 }
 
-func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *OrderStatus) (*model.OrderStatus, error) {
-	var newOrderStatusPtr *model.OrderStatus
+func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *OrderStatus) (*model.UserOrderStatus, error) {
+	var newOrderStatusPtr *model.UserOrderStatus
 	if status != nil {
-		newStatus, err := ConvertOrderStatus(*status)
+		newStatus, err := w.convertOrderStatus(*status)
 		if err != nil {
 			return nil, fmt.Errorf("'%s' worker failed to convert result order (%v) status (%v): %w", w.name, orderID, status, err)
 		}
@@ -142,9 +147,24 @@ func (w *orderIDResultWorker) calculateNewOrderStatus(orderID string, status *Or
 	return newOrderStatusPtr, nil
 }
 
-func (w *orderIDResultWorker) isFinalStatus(status model.OrderStatus) bool {
+func (w *orderIDResultWorker) convertOrderStatus(status OrderStatus) (model.UserOrderStatus, error) {
 	switch status {
-	case model.OrderStatusInvalid, model.OrderStatusProcessed:
+	case OrderStatusRegistered:
+		return model.UserOrderStatusNew, nil
+	case OrderStatusProcessing:
+		return model.UserOrderStatusProcessing, nil
+	case OrderStatusInvalid:
+		return model.UserOrderStatusInvalid, nil
+	case OrderStatusProcessed:
+		return model.UserOrderStatusProcessed, nil
+	default:
+		return -1, fmt.Errorf("%w: %d", ErrUnknownAccrualOrderStatus, status)
+	}
+}
+
+func (w *orderIDResultWorker) isFinalStatus(status model.UserOrderStatus) bool {
+	switch status {
+	case model.UserOrderStatusInvalid, model.UserOrderStatusProcessed:
 		return true
 	default:
 		return false
@@ -153,9 +173,9 @@ func (w *orderIDResultWorker) isFinalStatus(status model.OrderStatus) bool {
 
 func (w *orderIDResultWorker) updateUserOrder(
 	orderID string,
-	newStatus *model.OrderStatus,
+	newStatus *model.UserOrderStatus,
 	newAccrual *decimal.Decimal,
-	repositoryProvider uow.RepositoryProvider,
+	repositoryProvider RepositoryProvider,
 ) (
 	doRetry bool,
 	executeAtDelay time.Duration,
@@ -177,7 +197,7 @@ func (w *orderIDResultWorker) updateUserOrder(
 
 	userOrder := *userOrderPtr
 	// Не изменяем запись, если у неё уже финальный статус = обработанный
-	if userOrder.Status == model.OrderStatusProcessed {
+	if userOrder.Status == model.UserOrderStatusProcessed {
 		w.logger.Warnf("'%s' worker not found user order (%v)", w.name, orderID)
 		return doRetry, executeAtDelay, err
 	}
@@ -186,7 +206,7 @@ func (w *orderIDResultWorker) updateUserOrder(
 	if newStatus != nil {
 		userOrder.Status = *newStatus
 		// Изменяем начисление только при новом финальном статусе = обработанный
-		if *newStatus == model.OrderStatusProcessed {
+		if *newStatus == model.UserOrderStatusProcessed {
 			userOrder.Accrual = newAccrual
 			// Начисление в баланс только при переходе в завершенный статус = обработанный, с суммой начисления больше ноля
 			if userOrder.Accrual != nil && userOrder.Accrual.GreaterThan(decimal.Zero) {

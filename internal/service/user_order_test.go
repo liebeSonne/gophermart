@@ -10,9 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/liebeSonne/gophermart/internal/handler"
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 	"github.com/liebeSonne/gophermart/internal/service/async"
 )
 
@@ -29,7 +28,7 @@ func TestUserOrderService_Upload(t *testing.T) {
 		storeErr     error
 	}
 	type on struct {
-		input UploadUserOrderInput
+		input handler.UploadUserOrderInput
 	}
 	type want struct {
 		err            error
@@ -43,43 +42,43 @@ func TestUserOrderService_Upload(t *testing.T) {
 	}{
 		{
 			"empty order id",
-			on{UploadUserOrderInput{"", userID1}},
+			on{handler.UploadUserOrderInput{OrderID: "", UserID: userID1}},
 			when{},
-			want{err: ErrInvalidOrderID},
+			want{err: handler.ErrInvalidOrderID},
 		},
 		{
 			"invalid order id",
-			on{UploadUserOrderInput{invalidOrderID1, userID1}},
+			on{handler.UploadUserOrderInput{OrderID: invalidOrderID1, UserID: userID1}},
 			when{},
-			want{err: ErrInvalidOrderID},
+			want{err: handler.ErrInvalidOrderID},
 		},
 		{
 			"err on find user order",
-			on{UploadUserOrderInput{orderID1, userID1}},
+			on{handler.UploadUserOrderInput{OrderID: orderID1, UserID: userID1}},
 			when{findOrderErr: error1},
 			want{err: error1},
 		},
 		{
 			"already uploaded by other user",
-			on{UploadUserOrderInput{orderID1, userID1}},
+			on{handler.UploadUserOrderInput{OrderID: orderID1, UserID: userID1}},
 			when{findOrder: &model.UserOrder{OrderID: orderID1, UserID: userID2}},
-			want{err: ErrUserOrderAlreadyUploadedByOtherUser},
+			want{err: handler.ErrUserOrderAlreadyUploadedByOtherUser},
 		},
 		{
 			"already uploaded by user",
-			on{UploadUserOrderInput{orderID1, userID1}},
+			on{handler.UploadUserOrderInput{OrderID: orderID1, UserID: userID1}},
 			when{findOrder: &model.UserOrder{OrderID: orderID1, UserID: userID1}},
-			want{err: ErrUserOrderAlreadyUploadedByUser},
+			want{err: handler.ErrUserOrderAlreadyUploadedByUser},
 		},
 		{
 			"error on store",
-			on{UploadUserOrderInput{orderID1, userID1}},
+			on{handler.UploadUserOrderInput{OrderID: orderID1, UserID: userID1}},
 			when{storeErr: error1},
 			want{err: error1},
 		},
 		{
 			"success",
-			on{UploadUserOrderInput{orderID1, userID1}},
+			on{handler.UploadUserOrderInput{OrderID: orderID1, UserID: userID1}},
 			when{},
 			want{err: nil, produceOrderID: &orderID1},
 		},
@@ -87,16 +86,16 @@ func TestUserOrderService_Upload(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			userOrderRepository := repository.NewMockUserOrderRepository(t)
+			userOrderRepository := NewMockUserOrderRepository(t)
 			userOrderRepository.EXPECT().FindByOrderID(t.Context(), tc.on.input.OrderID).Return(tc.when.findOrder, tc.when.findOrderErr).Maybe()
 			userOrderRepository.EXPECT().NextID(t.Context()).Return(uuid.New()).Maybe()
 			userOrderRepository.EXPECT().Store(t.Context(), mock.Anything).Return(tc.when.storeErr).Maybe()
 
-			repositoryProvider := uow.NewMockRepositoryProvider(t)
+			repositoryProvider := NewMockRepositoryProvider(t)
 			repositoryProvider.EXPECT().UserOrderRepository().Return(userOrderRepository).Maybe()
 
-			uowFactory := uow.NewMockUnitOfWorkFactory(t)
-			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider uow.RepositoryProvider) error) error {
+			uowFactory := NewMockUnitOfWorkFactory(t)
+			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider RepositoryProvider) error) error {
 				return fn(repositoryProvider)
 			}).Maybe()
 

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+
+	"github.com/liebeSonne/gophermart/internal/handler"
 )
 
 // nolint: goconst
@@ -13,7 +15,7 @@ func TestCreateUserInput_Validate(t *testing.T) {
 	password1 := "password 1"
 
 	type on struct {
-		input CreateUserInput
+		input handler.CreateUserInput
 	}
 	type want struct {
 		err error
@@ -25,34 +27,35 @@ func TestCreateUserInput_Validate(t *testing.T) {
 	}{
 		{
 			"valid",
-			on{CreateUserInput{login1, password1}},
+			on{handler.CreateUserInput{Login: login1, Password: password1}},
 			want{nil},
 		},
 		{
 			"empty login",
-			on{CreateUserInput{"", password1}},
-			want{ErrInvalidUserLogin},
+			on{handler.CreateUserInput{Login: "", Password: password1}},
+			want{handler.ErrInvalidUserLogin},
 		},
 		{
 			"empty password",
-			on{CreateUserInput{login1, ""}},
-			want{ErrInvalidUserPassword},
+			on{handler.CreateUserInput{Login: login1, Password: ""}},
+			want{handler.ErrInvalidUserPassword},
 		},
 		{
 			"invalid login length",
-			on{CreateUserInput{strings.Repeat("l", MaxUserLoginLength+1), password1}},
-			want{ErrInvalidUserLogin},
+			on{handler.CreateUserInput{Login: strings.Repeat("l", MaxUserLoginLength+1), Password: password1}},
+			want{handler.ErrInvalidUserLogin},
 		},
 		{
 			"invalid password length",
-			on{CreateUserInput{login1, strings.Repeat("l", MaxUserPasswordLength+1)}},
-			want{ErrInvalidUserPassword},
+			on{handler.CreateUserInput{Login: login1, Password: strings.Repeat("l", MaxUserPasswordLength+1)}},
+			want{handler.ErrInvalidUserPassword},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.on.input.Validate()
+			validator := createUserInputValidator{Input: tc.on.input}
+			err := validator.Validate()
 
 			if tc.want.err != nil {
 				require.Error(t, err)
@@ -71,7 +74,7 @@ func TestLoginUserInput_Validate(t *testing.T) {
 	password1 := "password 1"
 
 	type on struct {
-		input LoginUserInput
+		input handler.LoginUserInput
 	}
 	type want struct {
 		err error
@@ -83,24 +86,25 @@ func TestLoginUserInput_Validate(t *testing.T) {
 	}{
 		{
 			"valid",
-			on{LoginUserInput{login1, password1}},
+			on{handler.LoginUserInput{Login: login1, Password: password1}},
 			want{nil},
 		},
 		{
 			"empty login",
-			on{LoginUserInput{"", password1}},
-			want{ErrInvalidUserLogin},
+			on{handler.LoginUserInput{Login: "", Password: password1}},
+			want{handler.ErrInvalidUserLogin},
 		},
 		{
 			"empty password",
-			on{LoginUserInput{login1, ""}},
-			want{ErrInvalidUserPassword},
+			on{handler.LoginUserInput{Login: login1, Password: ""}},
+			want{handler.ErrInvalidUserPassword},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.on.input.Validate()
+			validator := loginUserInputValidator{Input: tc.on.input}
+			err := validator.Validate()
 
 			if tc.want.err != nil {
 				require.Error(t, err)

@@ -1,4 +1,4 @@
-package async
+package service
 
 import (
 	"context"
@@ -8,8 +8,19 @@ import (
 	"github.com/sirupsen/logrus"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/provider"
+	"github.com/liebeSonne/gophermart/internal/service/async"
 )
+
+type FindUserOrderSpecification struct {
+	Statuses        []model.UserOrderStatus
+	BeforeUpdatedAt time.Time
+	Limit           *uint
+	Offset          *uint
+}
+
+type ExecutedUserOrderProvider interface {
+	FindOrderIDToExecuteAtMap(ctx context.Context, spec FindUserOrderSpecification) (map[string]time.Time, error)
+}
 
 type OrderIDsProducer interface {
 	Start(ctx context.Context)
@@ -29,41 +40,41 @@ func NewOrderIDsProducer(
 	selectLimit *uint,
 	limitRetriesOnError uint,
 	waitingOnError time.Duration,
-	userOrderProvider provider.UserOrderProvider,
-	retryProducer Producer[string],
+	executedUserOrderProvider ExecutedUserOrderProvider,
+	retryProducer async.Producer[string],
 	logger *logrus.Logger,
 ) OrderIDsProducer {
 	return &orderIDsProducer{
-		name:                name,
-		channelSize:         channelSize,
-		selectLimit:         selectLimit,
-		waitingOnError:      waitingOnError,
-		limitRetriesOnError: limitRetriesOnError,
-		userOrderProvider:   userOrderProvider,
-		retryProducer:       retryProducer,
-		logger:              logger,
-		ch:                  nil,
-		closed:              true,
-		started:             false,
-		cancel:              nil,
+		name:                      name,
+		channelSize:               channelSize,
+		selectLimit:               selectLimit,
+		waitingOnError:            waitingOnError,
+		limitRetriesOnError:       limitRetriesOnError,
+		executedUserOrderProvider: executedUserOrderProvider,
+		retryProducer:             retryProducer,
+		logger:                    logger,
+		ch:                        nil,
+		closed:                    true,
+		started:                   false,
+		cancel:                    nil,
 	}
 }
 
 type orderIDsProducer struct {
-	ctx                 context.Context
-	name                string
-	channelSize         uint
-	selectLimit         *uint
-	limitRetriesOnError uint
-	waitingOnError      time.Duration
-	userOrderProvider   provider.UserOrderProvider
-	retryProducer       Producer[string]
-	logger              *logrus.Logger
-	ch                  chan string
-	closed              bool
-	started             bool
-	cancel              CancelFunc
-	mu                  sync.RWMutex
+	ctx                       context.Context
+	name                      string
+	channelSize               uint
+	selectLimit               *uint
+	limitRetriesOnError       uint
+	waitingOnError            time.Duration
+	executedUserOrderProvider ExecutedUserOrderProvider
+	retryProducer             async.Producer[string]
+	logger                    *logrus.Logger
+	ch                        chan string
+	closed                    bool
+	started                   bool
+	cancel                    async.CancelFunc
+	mu                        sync.RWMutex
 }
 
 func (p *orderIDsProducer) Produce() <-chan string {
@@ -178,13 +189,13 @@ func (p *orderIDsProducer) Stop() bool {
 }
 
 func (p *orderIDsProducer) selectOrderIDs(ctx context.Context, updatedAt time.Time, limit, offset *uint) (map[string]time.Time, error) {
-	spec := model.FindUserOrderSpecification{
-		Statuses:        []model.OrderStatus{model.OrderStatusNew, model.OrderStatusProcessing},
+	spec := FindUserOrderSpecification{
+		Statuses:        []model.UserOrderStatus{model.UserOrderStatusNew, model.UserOrderStatusProcessing},
 		BeforeUpdatedAt: updatedAt,
 		Limit:           limit,
 		Offset:          offset,
 	}
-	orderIDToExecuteAtMap, err := p.userOrderProvider.FindOrderIDToExecuteAtMap(ctx, spec)
+	orderIDToExecuteAtMap, err := p.executedUserOrderProvider.FindOrderIDToExecuteAtMap(ctx, spec)
 	if err != nil {
 		return nil, err
 	}

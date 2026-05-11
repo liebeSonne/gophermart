@@ -10,14 +10,14 @@ import (
 	"github.com/liebeSonne/gophermart/internal/model"
 )
 
-var orderStatusMap = map[model.OrderStatus]server.UserOrderDataStatus{
-	model.OrderStatusNew:        server.NEW,
-	model.OrderStatusProcessing: server.PROCESSING,
-	model.OrderStatusInvalid:    server.INVALID,
-	model.OrderStatusProcessed:  server.PROCESSED,
+var orderStatusMap = map[model.UserOrderStatus]server.UserOrderDataStatus{
+	model.UserOrderStatusNew:        server.NEW,
+	model.UserOrderStatusProcessing: server.PROCESSING,
+	model.UserOrderStatusInvalid:    server.INVALID,
+	model.UserOrderStatusProcessed:  server.PROCESSED,
 }
 
-func convertUserOrderStatusToAPI(status model.OrderStatus) (server.UserOrderDataStatus, error) {
+func convertUserOrderStatusToAPI(status model.UserOrderStatus) (server.UserOrderDataStatus, error) {
 	result, ok := orderStatusMap[status]
 	if !ok {
 		return "", errors.New("unknown user order status")

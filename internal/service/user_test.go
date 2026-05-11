@@ -10,10 +10,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/liebeSonne/gophermart/internal/handler"
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/provider"
-	"github.com/liebeSonne/gophermart/internal/repository"
-	"github.com/liebeSonne/gophermart/internal/repository/uow"
 )
 
 // nolint:goconst
@@ -33,7 +31,7 @@ func TestUserService_Create(t *testing.T) {
 		storeErr    error
 	}
 	type on struct {
-		input CreateUserInput
+		input handler.CreateUserInput
 	}
 	type want struct {
 		err error
@@ -46,55 +44,55 @@ func TestUserService_Create(t *testing.T) {
 	}{
 		{
 			"not found user with login",
-			on{CreateUserInput{login1, password1}},
+			on{handler.CreateUserInput{Login: login1, Password: password1}},
 			when{nil, nil, passHash1, nil, nil},
 			want{nil},
 		},
 		{
 			"exist user with login",
-			on{CreateUserInput{login1, password1}},
+			on{handler.CreateUserInput{Login: login1, Password: password1}},
 			when{&user1, nil, passHash1, nil, nil},
-			want{ErrUserLoginExists},
+			want{handler.ErrUserLoginExists},
 		},
 		{
 			"empty user login",
-			on{CreateUserInput{"", password1}},
+			on{handler.CreateUserInput{Login: "", Password: password1}},
 			when{nil, nil, passHash1, nil, nil},
-			want{ErrInvalidUserLogin},
+			want{handler.ErrInvalidUserLogin},
 		},
 		{
 			"invalid user login length",
-			on{CreateUserInput{strings.Repeat("l", MaxUserLoginLength+1), password1}},
+			on{handler.CreateUserInput{Login: strings.Repeat("l", MaxUserLoginLength+1), Password: password1}},
 			when{nil, nil, passHash1, nil, nil},
-			want{ErrInvalidUserLogin},
+			want{handler.ErrInvalidUserLogin},
 		},
 		{
 			"empty user password",
-			on{CreateUserInput{login1, ""}},
+			on{handler.CreateUserInput{Login: login1, Password: ""}},
 			when{nil, nil, passHash1, nil, nil},
-			want{ErrInvalidUserPassword},
+			want{handler.ErrInvalidUserPassword},
 		},
 		{
 			"invalid user password length",
-			on{CreateUserInput{login1, strings.Repeat("p", MaxUserPasswordLength+1)}},
+			on{handler.CreateUserInput{Login: login1, Password: strings.Repeat("p", MaxUserPasswordLength+1)}},
 			when{nil, nil, passHash1, nil, nil},
-			want{ErrInvalidUserPassword},
+			want{handler.ErrInvalidUserPassword},
 		},
 		{
 			"error on find user",
-			on{CreateUserInput{login1, password1}},
+			on{handler.CreateUserInput{Login: login1, Password: password1}},
 			when{nil, error1, passHash1, nil, nil},
 			want{error1},
 		},
 		{
 			"error on generate password hash",
-			on{CreateUserInput{login1, password1}},
+			on{handler.CreateUserInput{Login: login1, Password: password1}},
 			when{nil, nil, passHash1, error1, nil},
 			want{error1},
 		},
 		{
 			"error on store user",
-			on{CreateUserInput{login1, password1}},
+			on{handler.CreateUserInput{Login: login1, Password: password1}},
 			when{nil, nil, passHash1, nil, error1},
 			want{error1},
 		},
@@ -102,20 +100,20 @@ func TestUserService_Create(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			userRepository := repository.NewMockUserRepository(t)
+			userRepository := NewMockUserRepository(t)
 			userRepository.EXPECT().FindByLogin(t.Context(), tc.on.input.Login).Return(tc.when.findUser, tc.when.findUserErr).Maybe()
 			userRepository.EXPECT().NextID(t.Context()).Return(uuid.New()).Maybe()
 			userRepository.EXPECT().Store(t.Context(), mock.Anything).Return(tc.when.storeErr).Maybe()
 
-			repositoryProvider := uow.NewMockRepositoryProvider(t)
+			repositoryProvider := NewMockRepositoryProvider(t)
 			repositoryProvider.EXPECT().UserRepository().Return(userRepository).Maybe()
 
-			uowFactory := uow.NewMockUnitOfWorkFactory(t)
-			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider uow.RepositoryProvider) error) error {
+			uowFactory := NewMockUnitOfWorkFactory(t)
+			uowFactory.EXPECT().ExecuteWithUnitOfWork(t.Context(), mock.Anything, mock.Anything).RunAndReturn(func(_ context.Context, _ []string, fn func(provider RepositoryProvider) error) error {
 				return fn(repositoryProvider)
 			}).Maybe()
 
-			userProvider := provider.NewMockUserProvider(t)
+			userProvider := NewMockUserProvider(t)
 
 			passwordService := NewMockPasswordService(t)
 			passwordService.EXPECT().CreateHash(t.Context(), tc.on.input.Password).Return(tc.when.passHash, tc.when.passHashErr).Maybe()
@@ -151,7 +149,7 @@ func TestUserService_CheckPassword(t *testing.T) {
 		checkPassErr error
 	}
 	type on struct {
-		input LoginUserInput
+		input handler.LoginUserInput
 	}
 	type want struct {
 		err error
@@ -164,43 +162,43 @@ func TestUserService_CheckPassword(t *testing.T) {
 	}{
 		{
 			"success login",
-			on{LoginUserInput{login1, password1}},
+			on{handler.LoginUserInput{Login: login1, Password: password1}},
 			when{&user1, nil, true, nil},
 			want{nil},
 		},
 		{
 			"not valid user login password",
-			on{LoginUserInput{login1, password1}},
+			on{handler.LoginUserInput{Login: login1, Password: password1}},
 			when{&user1, nil, false, nil},
-			want{ErrNotValidUserLoginPassword},
+			want{handler.ErrNotValidUserLoginPassword},
 		},
 		{
 			"empty user login",
-			on{LoginUserInput{"", password1}},
+			on{handler.LoginUserInput{Login: "", Password: password1}},
 			when{nil, nil, false, nil},
-			want{ErrInvalidUserLogin},
+			want{handler.ErrInvalidUserLogin},
 		},
 		{
 			"empty user password",
-			on{LoginUserInput{login1, ""}},
+			on{handler.LoginUserInput{Login: login1, Password: ""}},
 			when{nil, nil, false, nil},
-			want{ErrInvalidUserPassword},
+			want{handler.ErrInvalidUserPassword},
 		},
 		{
 			"error on find user",
-			on{LoginUserInput{login1, password1}},
+			on{handler.LoginUserInput{Login: login1, Password: password1}},
 			when{nil, error1, false, nil},
 			want{error1},
 		},
 		{
 			"user not found",
-			on{LoginUserInput{login1, password1}},
+			on{handler.LoginUserInput{Login: login1, Password: password1}},
 			when{nil, nil, false, nil},
 			want{ErrUserNotFound},
 		},
 		{
 			"error on check password hash",
-			on{LoginUserInput{login1, password1}},
+			on{handler.LoginUserInput{Login: login1, Password: password1}},
 			when{&user1, nil, false, error1},
 			want{error1},
 		},
@@ -208,9 +206,9 @@ func TestUserService_CheckPassword(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			uowFactory := uow.NewMockUnitOfWorkFactory(t)
+			uowFactory := NewMockUnitOfWorkFactory(t)
 
-			userProvider := provider.NewMockUserProvider(t)
+			userProvider := NewMockUserProvider(t)
 			userProvider.EXPECT().FindByLogin(t.Context(), tc.on.input.Login).Return(tc.when.findUser, tc.when.findUserErr).Maybe()
 
 			passwordService := NewMockPasswordService(t)

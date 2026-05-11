@@ -9,32 +9,25 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository/database"
 )
 
-type UserBalanceWithdrawnRepository interface {
-	NextID(ctx context.Context) uuid.UUID
-	Store(ctx context.Context, item model.UserBalanceWithdrawn) error
-	FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserBalanceWithdrawn, error)
-}
-
 func NewUserBalanceWithdrawnRepository(
-	client database.ContextClient,
-) UserBalanceWithdrawnRepository {
-	return &userBalanceWithdrawnRepository{
+	client ContextClient,
+) *UserBalanceWithdrawnRepository {
+	return &UserBalanceWithdrawnRepository{
 		client: client,
 	}
 }
 
-type userBalanceWithdrawnRepository struct {
-	client database.ContextClient
+type UserBalanceWithdrawnRepository struct {
+	client ContextClient
 }
 
-func (r *userBalanceWithdrawnRepository) NextID(_ context.Context) uuid.UUID {
+func (r *UserBalanceWithdrawnRepository) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 
-func (r *userBalanceWithdrawnRepository) Store(ctx context.Context, item model.UserBalanceWithdrawn) error {
+func (r *UserBalanceWithdrawnRepository) Store(ctx context.Context, item model.UserBalanceWithdrawn) error {
 	const sqlQuery = `
 		INSERT INTO "user_balance_withdrawn" (id, user_id, order_id, amount, created_at) VALUES ($1, $2, $3, $4, $5)
 	`
@@ -47,7 +40,7 @@ func (r *userBalanceWithdrawnRepository) Store(ctx context.Context, item model.U
 	return nil
 }
 
-func (r *userBalanceWithdrawnRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserBalanceWithdrawn, error) {
+func (r *UserBalanceWithdrawnRepository) FindByUserID(ctx context.Context, userID uuid.UUID) ([]model.UserBalanceWithdrawn, error) {
 	const sqlQuery = `
 		SELECT id, user_id, order_id, amount, created_at
 		FROM user_balance_withdrawn 

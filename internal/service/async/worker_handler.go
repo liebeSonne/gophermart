@@ -6,16 +6,20 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Worker - интерфейс обработчика единицы данных I, возвращающего результат в канал O
 type Worker[I, O any] interface {
 	Handle(value I, outCh chan<- O)
 }
 
+// WorkerHandleFunc - интерфейс метода обработки единицы данных I, возвращающего результат в канал O
 type WorkerHandleFunc[I, O any] func(value I, resulCh chan<- O)
 
+// WorkerHandler - интерфейс обработчика канала I, возвращающего результаты в канал O
 type WorkerHandler[I, O any] interface {
 	Handle(inCh <-chan I, outCh chan<- O, countWorkers uint)
 }
 
+// NewWorkerHandler - обработчик, запускает обработку данных канала I и возвращает результаты в канал O
 func NewWorkerHandler[I, O any](
 	ctx context.Context,
 	name string,

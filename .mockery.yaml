@@ -4,34 +4,26 @@ pkgname: '{{.SrcPackageName}}'
 structname: '{{.Mock}}{{.InterfaceName}}'
 template: testify
 packages:
-  github.com/liebeSonne/gophermart/internal/repository:
-    interfaces:
-      UserRepository: { }
-      UserOrderRepository: { }
-      UserBalanceRepository: {}
-      UserBalanceWithdrawnRepository: {}
-  github.com/liebeSonne/gophermart/internal/repository/uow:
-    interfaces:
-      UnitOfWorkFactory: {}
-      RepositoryProvider: {}
-  github.com/liebeSonne/gophermart/internal/provider:
-    interfaces:
-      UserProvider: { }
-      UserOrderProvider: { }
   github.com/liebeSonne/gophermart/internal/service:
     interfaces:
-      UserService: { }
       PasswordService: { }
       AccrualService: {}
+      UnitOfWorkFactory: { }
+      RepositoryProvider: { }
+      UserRepository: { }
+      UserOrderRepository: { }
+      UserBalanceRepository: { }
+      UserBalanceWithdrawnRepository: { }
+      UserProvider: { }
+      UserOrderProvider: { }
+      ExecutedUserOrderProvider: {}
   github.com/liebeSonne/gophermart/internal/service/async:
     interfaces:
       Producer: {}
-  github.com/liebeSonne/gophermart/internal/auth:
+  github.com/liebeSonne/gophermart/internal/handler/auth:
     interfaces:
       TokenService: { }
-  github.com/liebeSonne/gophermart/internal/handler/cookie:
-    interfaces:
-      Service: { }
+      CookieService: { }
   github.com/liebeSonne/gophermart/internal/adapter:
     interfaces:
       AccrualClientWithResponsesInterface: {}

@@ -19,10 +19,10 @@ func initRouter(
 	s := handler.NewServer(
 		dependency.UserService,
 		dependency.UserOrderService,
-		dependency.UserOrderProvider,
-		dependency.UserBalanceProvider,
+		dependency.UserOrderQueryService,
+		dependency.UserBalanceQueryService,
 		dependency.UserBalanceService,
-		dependency.UserBalanceWithDrawnProvider,
+		dependency.UserBalanceWithDrawnQueryService,
 		dependency.TokenService,
 		dependency.CookieService,
 		logger,
@@ -33,7 +33,7 @@ func initRouter(
 	r.Use(middleware.RequestLogger(&middleware.DefaultLogFormatter{Logger: logger}))
 	r.Use(middleware.AllowContentEncoding("deflate", "gzip"))
 	r.Use(func(h http.Handler) http.Handler {
-		return auth.NewAuthMiddleware(h, dependency.TokenService, dependency.CookieService, logger)
+		return auth.NewAuthMiddleware(h, dependency.AuthTokenService, dependency.AuthCookieService, logger)
 	})
 
 	h := server.HandlerFromMux(s, r)

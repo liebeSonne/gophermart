@@ -9,35 +9,26 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository/database"
+	"github.com/liebeSonne/gophermart/internal/service"
 )
 
-var ErrUserNotFound = errors.New("user not found")
-
-type UserRepository interface {
-	NextID(ctx context.Context) uuid.UUID
-	Store(ctx context.Context, user model.User) error
-	GetByID(ctx context.Context, userID uuid.UUID) (model.User, error)
-	FindByLogin(ctx context.Context, login string) (*model.User, error)
-}
-
 func NewUserRepository(
-	client database.ContextClient,
-) UserRepository {
-	return &userRepository{
+	client ContextClient,
+) *UserRepository {
+	return &UserRepository{
 		client: client,
 	}
 }
 
-type userRepository struct {
-	client database.ContextClient
+type UserRepository struct {
+	client ContextClient
 }
 
-func (r *userRepository) NextID(_ context.Context) uuid.UUID {
+func (r *UserRepository) NextID(_ context.Context) uuid.UUID {
 	return uuid.New()
 }
 
-func (r *userRepository) Store(ctx context.Context, user model.User) error {
+func (r *UserRepository) Store(ctx context.Context, user model.User) error {
 	const sqlQuery = `
 		INSERT INTO "user" (id, login, passhash) VALUES ($1, $2, $3)
 	`
@@ -50,7 +41,7 @@ func (r *userRepository) Store(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.User, error) {
+func (r *UserRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.User, error) {
 	const sqlQuery = `
 		SELECT u.id, u.login, u.passhash 
 		FROM "user" u
@@ -63,7 +54,7 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.U
 	err := row.Scan(&user.ID, &user.Login, &user.PassHash)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return model.User{}, fmt.Errorf("user %s not found: %w", userID.String(), ErrUserNotFound)
+			return model.User{}, fmt.Errorf("user %s not found: %w", userID.String(), service.ErrUserNotFound)
 		}
 		return model.User{}, fmt.Errorf("error on scan row: %w", err)
 	}
@@ -71,7 +62,7 @@ func (r *userRepository) GetByID(ctx context.Context, userID uuid.UUID) (model.U
 	return user, nil
 }
 
-func (r *userRepository) FindByLogin(ctx context.Context, login string) (*model.User, error) {
+func (r *UserRepository) FindByLogin(ctx context.Context, login string) (*model.User, error) {
 	const sqlQuery = `
 		SELECT u.id, u.login, u.passhash 
 		FROM "user" u

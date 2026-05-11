@@ -10,28 +10,21 @@ import (
 	"github.com/shopspring/decimal"
 
 	"github.com/liebeSonne/gophermart/internal/model"
-	"github.com/liebeSonne/gophermart/internal/repository/database"
 )
 
-type UserBalanceRepository interface {
-	Store(ctx context.Context, item model.UserBalance) error
-	FindByUserID(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error)
-	GetByUserID(ctx context.Context, userID uuid.UUID) (model.UserBalance, error)
-}
-
 func NewUserBalanceRepository(
-	client database.ContextClient,
-) UserBalanceRepository {
-	return &userBalanceRepository{
+	client ContextClient,
+) *UserBalanceRepository {
+	return &UserBalanceRepository{
 		client: client,
 	}
 }
 
-type userBalanceRepository struct {
-	client database.ContextClient
+type UserBalanceRepository struct {
+	client ContextClient
 }
 
-func (r *userBalanceRepository) Store(ctx context.Context, item model.UserBalance) error {
+func (r *UserBalanceRepository) Store(ctx context.Context, item model.UserBalance) error {
 	const sqlQuery = `
 		INSERT INTO "user_balance" (user_id, balance, withdrawn_sum) VALUES ($1, $2, $3)
 		ON CONFLICT (user_id)
@@ -49,7 +42,7 @@ func (r *userBalanceRepository) Store(ctx context.Context, item model.UserBalanc
 	return nil
 }
 
-func (r *userBalanceRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error) {
+func (r *UserBalanceRepository) FindByUserID(ctx context.Context, userID uuid.UUID) (*model.UserBalance, error) {
 	const sqlQuery = `
 		SELECT user_id, balance, withdrawn_sum 
 		FROM "user_balance"
@@ -70,7 +63,7 @@ func (r *userBalanceRepository) FindByUserID(ctx context.Context, userID uuid.UU
 	return &user, nil
 }
 
-func (r *userBalanceRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (model.UserBalance, error) {
+func (r *UserBalanceRepository) GetByUserID(ctx context.Context, userID uuid.UUID) (model.UserBalance, error) {
 	userBalancePtr, err := r.FindByUserID(ctx, userID)
 	if err != nil {
 		return model.UserBalance{}, err
