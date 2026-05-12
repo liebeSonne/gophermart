@@ -21,7 +21,7 @@ const accrualServiceRetryMaxAttempts = 3
 const accrualServiceRetryDelay = time.Second * 1
 
 const dbClientRetryMaxAttempts = 3
-const dbClientRetryDelay = time.Second * 1
+const dbClientRetryDelay = time.Millisecond * 200
 
 type dependencyContainer struct {
 	UserService                      handler.UserService
