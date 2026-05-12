@@ -146,6 +146,12 @@ func TestWorkerHandler_Handle_sleeping(t *testing.T) {
 			when{map[string]int{"1": resultNotSleep, "2": resultNotSleep, "3": resultNotSleep}, time.Millisecond * 200},
 			want{3, 0},
 		},
+		{
+			"sleeping",
+			on{[]string{"1", "2", "3"}, 3, time.Second},
+			when{map[string]int{"1": resultSleep, "2": resultNotSleep, "3": resultNotSleep}, time.Millisecond * 200},
+			want{3, 1},
+		},
 	}
 
 	for _, tc := range testCases {
