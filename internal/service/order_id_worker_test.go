@@ -122,3 +122,69 @@ func TestOrderIDWorker_Handle(t *testing.T) {
 		})
 	}
 }
+
+func TestOrderIDWorker_SleepingHandle(t *testing.T) {
+	minTooManyRequestsRetryDelay := time.Second * 10
+	maxTooManyRequestsRetryDelay := time.Second * 30
+	retryAfterLessThenMin1 := time.Second * 5
+	retryAfterMoreThenMinAndLessThenMax1 := time.Second * 20
+	retryAfterMoreThenMax1 := time.Second * 40
+
+	type on struct {
+		result OrderIDWorkerResult
+	}
+	type want struct {
+		needDelay bool
+		delayTime time.Duration
+	}
+	testCases := []struct {
+		name string
+		on   on
+		want want
+	}{
+		{
+			"on too many requests error",
+			on{result: OrderIDWorkerResult{Err: ErrTooManyRequests}},
+			want{true, minTooManyRequestsRetryDelay},
+		},
+		{
+			"on too many requests error with retry after less then min",
+			on{result: OrderIDWorkerResult{Err: NewErrTooManyRequestsRetryAfter(ErrTooManyRequests, retryAfterLessThenMin1)}},
+			want{true, minTooManyRequestsRetryDelay},
+		},
+		{
+			"on too many requests error with retry after more then max",
+			on{result: OrderIDWorkerResult{Err: NewErrTooManyRequestsRetryAfter(ErrTooManyRequests, retryAfterMoreThenMax1)}},
+			want{true, maxTooManyRequestsRetryDelay},
+		},
+		{
+			"on too many requests error with retry after between mind and max",
+			on{result: OrderIDWorkerResult{Err: NewErrTooManyRequestsRetryAfter(ErrTooManyRequests, retryAfterMoreThenMinAndLessThenMax1)}},
+			want{true, retryAfterMoreThenMinAndLessThenMax1},
+		},
+		{
+			"on unknown error",
+			on{result: OrderIDWorkerResult{Err: errors.New("error 1")}},
+			want{false, 0},
+		},
+		{
+			"on no error",
+			on{result: OrderIDWorkerResult{Err: nil}},
+			want{false, 0},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			accrualService := NewMockAccrualService(t)
+			l := ilogger.NewNullLogger()
+
+			w := NewOrderIDWorker(t.Context(), "name", minTooManyRequestsRetryDelay, maxTooManyRequestsRetryDelay, accrualService, l)
+
+			needDelay, delayTime := w.SleepingHandle(tc.on.result)
+
+			assert.Equal(t, tc.want.needDelay, needDelay)
+			assert.Equal(t, tc.want.delayTime, delayTime)
+		})
+	}
+}
