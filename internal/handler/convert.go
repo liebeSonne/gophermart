@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/shopspring/decimal"
 
@@ -25,9 +24,9 @@ func convertUserOrderStatusToAPI(status model.UserOrderStatus) (server.UserOrder
 	return result, nil
 }
 
-func convertDecimalToFloat64(amount decimal.Decimal) (float64, error) {
+func convertDecimalToFloat64(amount decimal.Decimal) float64 {
 	accrualFloat64, _ := amount.Float64()
-	return accrualFloat64, nil
+	return accrualFloat64
 }
 
 func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
@@ -37,10 +36,7 @@ func convertUserOrderToAPI(item model.UserOrder) (server.UserOrderData, error) {
 	}
 	var accrualPtr *float64
 	if item.Accrual != nil {
-		accrual, err := convertDecimalToFloat64(*item.Accrual)
-		if err != nil {
-			return server.UserOrderData{}, fmt.Errorf("error on converting accrual value (%v): %w", *item.Accrual, err)
-		}
+		accrual := convertDecimalToFloat64(*item.Accrual)
 		accrualPtr = &accrual
 	}
 
@@ -64,44 +60,29 @@ func convertUserOrdersToAPI(items []model.UserOrder) ([]server.UserOrderData, er
 	return itemsData, nil
 }
 
-func convertUserBalanceToAPI(item model.UserBalance) (server.GetUserBalanceResponse, error) {
-	balance, err := convertDecimalToFloat64(item.Balance)
-	if err != nil {
-		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting balance value (%v): %w", item.Balance, err)
-	}
-	withdrawnSum, err := convertDecimalToFloat64(item.WithdrawnSum)
-	if err != nil {
-		return server.GetUserBalanceResponse{}, fmt.Errorf("error on converting withdrawn sum value (%v): %w", item.WithdrawnSum, err)
-	}
-
+func convertUserBalanceToAPI(item model.UserBalance) server.GetUserBalanceResponse {
+	balance := convertDecimalToFloat64(item.Balance)
+	withdrawnSum := convertDecimalToFloat64(item.WithdrawnSum)
 	return server.GetUserBalanceResponse{
 		Current:   balance,
 		Withdrawn: withdrawnSum,
-	}, nil
+	}
 }
 
-func convertUserBalanceWithdrawnToAPI(item model.UserBalanceWithdrawn) (server.WithdrawalData, error) {
-	amount, err := convertDecimalToFloat64(item.Amount)
-	if err != nil {
-		return server.WithdrawalData{}, fmt.Errorf("error on converting amount value (%v): %w", item.Amount, err)
-	}
-
+func convertUserBalanceWithdrawnToAPI(item model.UserBalanceWithdrawn) server.WithdrawalData {
+	amount := convertDecimalToFloat64(item.Amount)
 	return server.WithdrawalData{
 		Order:       item.OrderID,
 		Sum:         amount,
 		ProcessedAt: item.CreatedAt,
-	}, nil
+	}
 }
 
-func convertUserBalanceWithdrawnItemsToAPI(items []model.UserBalanceWithdrawn) ([]server.WithdrawalData, error) {
+func convertUserBalanceWithdrawnItemsToAPI(items []model.UserBalanceWithdrawn) []server.WithdrawalData {
 	itemsData := make([]server.WithdrawalData, 0, len(items))
 	for _, item := range items {
-		itemData, err := convertUserBalanceWithdrawnToAPI(item)
-		if err != nil {
-			return server.GetUserWithdrawalsResponse{}, err
-		}
+		itemData := convertUserBalanceWithdrawnToAPI(item)
 		itemsData = append(itemsData, itemData)
 	}
-
-	return itemsData, nil
+	return itemsData
 }

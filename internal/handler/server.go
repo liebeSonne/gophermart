@@ -73,6 +73,14 @@ func (s *Server) RegisterUser(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 			return
 		}
+		if errors.Is(err, ErrInvalidUserLogin) {
+			http.Error(w, "invalid login", http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, ErrInvalidUserPassword) {
+			http.Error(w, "invalid password", http.StatusBadRequest)
+			return
+		}
 
 		s.logger.Errorf("error creating user (login: '%s'): %v", input.Login, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -111,6 +119,14 @@ func (s *Server) LoginUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		if errors.Is(err, ErrNotValidUserLoginPassword) || errors.Is(err, ErrUserNotFound) {
 			http.Error(w, http.StatusText(http.StatusUnauthorized), http.StatusUnauthorized)
+			return
+		}
+		if errors.Is(err, ErrInvalidUserLogin) {
+			http.Error(w, "invalid login", http.StatusBadRequest)
+			return
+		}
+		if errors.Is(err, ErrInvalidUserPassword) {
+			http.Error(w, "invalid password", http.StatusBadRequest)
 			return
 		}
 
@@ -235,12 +251,7 @@ func (s *Server) GetUserBalance(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := convertUserBalanceToAPI(userBalance)
-	if err != nil {
-		s.logger.Errorf("error converting user (userID: %s) balanceL %v", userID, err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
+	resp := convertUserBalanceToAPI(userBalance)
 
 	enc := json.NewEncoder(w)
 	err = enc.Encode(resp)
@@ -320,12 +331,7 @@ func (s *Server) GetUserWithdrawals(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := convertUserBalanceWithdrawnItemsToAPI(items)
-	if err != nil {
-		s.logger.Errorf("error converting user (userID: %s) balance withdrawn items: %v", userID, err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
-		return
-	}
+	resp := convertUserBalanceWithdrawnItemsToAPI(items)
 
 	enc := json.NewEncoder(w)
 	err = enc.Encode(resp)

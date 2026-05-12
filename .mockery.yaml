@@ -34,3 +34,13 @@ packages:
     interfaces:
       Rows: {}
       Row: {}
+  github.com/liebeSonne/gophermart/internal/handler:
+    interfaces:
+      UserService: {}
+      UserOrderService: {}
+      UserOrderQueryService: {}
+      UserBalanceQueryService: {}
+      UserBalanceService: {}
+      UserBalanceWithDrawnQueryService: {}
+      TokenService: {}
+      CookieService: {}
