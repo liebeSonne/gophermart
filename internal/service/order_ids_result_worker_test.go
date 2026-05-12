@@ -285,3 +285,56 @@ func TestNewOrderIDResultWorker(t *testing.T) {
 		})
 	}
 }
+
+func TestOrderIDResultWorker_SleepingHandle(t *testing.T) {
+	retryDelay := time.Second * 20
+	minTooManyRequestsRetryDelay := time.Second * 10
+	maxTooManyRequestsRetryDelay := time.Second * 40
+
+	type on struct {
+		result struct{}
+	}
+	type want struct {
+		needDelay bool
+		delayTime time.Duration
+	}
+	testCases := []struct {
+		name string
+		on   on
+		want want
+	}{
+		{
+			"on any result",
+			on{},
+			want{false, 0},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := t.Context()
+			retryProducer := async.NewMockProducer[string](t)
+			userOrderProvider := NewMockUserOrderProvider(t)
+			uowFactory := NewMockUnitOfWorkFactory(t)
+
+			l := ilogger.NewNullLogger()
+
+			w := NewOrderIDResultWorker(
+				ctx,
+				"name",
+				retryDelay,
+				minTooManyRequestsRetryDelay,
+				maxTooManyRequestsRetryDelay,
+				retryProducer,
+				uowFactory,
+				userOrderProvider,
+				l,
+			)
+
+			needDelay, delayTime := w.SleepingHandle(tc.on.result)
+
+			assert.Equal(t, tc.want.needDelay, needDelay)
+			assert.Equal(t, tc.want.delayTime, delayTime)
+		})
+	}
+}
